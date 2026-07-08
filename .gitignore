@@ -1,3 +1,12 @@
+# Project-specific
+src/data/raw/
+src/data/processed/
+*.joblib
+*.h5
+*.pkl
+docker/postgres_data/
+.idea/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

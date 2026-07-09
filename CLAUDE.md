@@ -59,3 +59,26 @@ from raw sensor data to a deployed product on AWS.
 - Never use `git add .` or `git add -A`
 - Always push after every commit
 - Provide exact commands including specific files to add
+
+## README Workflow
+- Update the README after every completed EDA part or project milestone
+- Organize content in the order the work was done (chronological)
+- Each EDA finding gets a numbered subsection under "EDA Findings"
+- Include tables with actual numbers, not just descriptions
+- Document decisions made and their reasoning
+
+## How to Build This Project (Workflow Rules)
+- Work step-by-step — finish one part completely before moving to the next
+- After each step: show results, discuss findings, update README, then commit
+- Before writing code: explain the concept and make sure it's understood
+- When encountering data issues: investigate root cause before deciding on a fix
+- Present results visually (tables, charts) — not just raw console output
+- Every decision should be explained: what we chose, why, and what alternatives exist
+- The user leads the pace — don't skip ahead or combine steps without asking
+
+## AI Workflow Strategy (Claude Code)
+- Opus: use for high-level decisions — algorithm selection, architecture,
+  debugging complex issues, reviewing results
+- Sonnet: use for execution — writing code, refactoring, implementing features
+- Rule: start every task with Sonnet. Switch to Opus only when stuck
+  or making a design decision that affects the whole project.

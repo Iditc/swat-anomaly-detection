@@ -89,8 +89,92 @@ def part2_class_distribution(normal: pd.DataFrame, attack: pd.DataFrame) -> None
     print(f"\nSaved: {FIGURES_DIR / 'class_distribution.png'}")
 
 
+def _build_combined_timeline(
+    normal: pd.DataFrame, attack: pd.DataFrame,
+) -> pd.DataFrame:
+    """Merge normal and attack into one sorted timeline."""
+    combined = pd.concat([normal, attack]).sort_values("Timestamp")
+    return combined.drop_duplicates(subset=["Timestamp"]).reset_index(drop=True)
+
+
+def part3_timeseries(normal: pd.DataFrame, attack: pd.DataFrame) -> None:
+    """Plot key sensors over time with attack periods highlighted."""
+    print("\n" + "=" * 60)
+    print("PART 3 — TIME-SERIES BEHAVIOR")
+    print("=" * 60)
+
+    combined = _build_combined_timeline(normal, attack)
+    print(f"\nCombined timeline: {len(combined):,} rows")
+    print(f"Period: {combined['Timestamp'].min()} to {combined['Timestamp'].max()}")
+
+    attack_timestamps = set(attack["Timestamp"])
+
+    key_sensors = [
+        ("LIT101", "P1 — Water level"),
+        ("FIT101", "P1 — Flow rate"),
+        ("AIT201", "P2 — Chemical analysis"),
+        ("LIT301", "P3 — UF tank level"),
+        ("FIT401", "P4 — Dechlorination flow"),
+        ("AIT501", "P5 — RO analysis"),
+    ]
+
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    fig, axes = plt.subplots(len(key_sensors), 1, figsize=(16, 3.5 * len(key_sensors)))
+
+    sample = combined.iloc[::30].copy()
+    sample["is_attack"] = sample["Timestamp"].isin(attack_timestamps)
+
+    for ax, (sensor, label) in zip(axes, key_sensors):
+        normal_mask = ~sample["is_attack"]
+        attack_mask = sample["is_attack"]
+
+        ax.plot(
+            sample.loc[normal_mask, "Timestamp"],
+            sample.loc[normal_mask, sensor],
+            color="#2a78d6", linewidth=0.4, alpha=0.7, label="Normal",
+        )
+        ax.scatter(
+            sample.loc[attack_mask, "Timestamp"],
+            sample.loc[attack_mask, sensor],
+            color="#e34948", s=1, alpha=0.8, label="Attack",
+        )
+        ax.set_ylabel(sensor, fontsize=10)
+        ax.set_title(label, fontsize=11, loc="left")
+        ax.legend(loc="upper right", fontsize=8, markerscale=5)
+        ax.tick_params(axis="x", labelsize=8)
+
+    axes[-1].set_xlabel("Time")
+    plt.suptitle("SWaT — Key Sensor Readings Over Time", fontsize=14, y=1.01)
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "sensor_timeseries.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {FIGURES_DIR / 'sensor_timeseries.png'}")
+
+    print("\n--- Attack periods ---")
+    attack_sorted = attack.sort_values("Timestamp")
+    time_diff = attack_sorted["Timestamp"].diff().dt.total_seconds()
+    gap_indices = time_diff[time_diff > 60].index.tolist()
+
+    periods = []
+    start_idx = attack_sorted.index[0]
+    for gap_idx in gap_indices:
+        prev_idx = attack_sorted.index[attack_sorted.index.get_loc(gap_idx) - 1]
+        periods.append((attack_sorted.loc[start_idx, "Timestamp"],
+                        attack_sorted.loc[prev_idx, "Timestamp"]))
+        start_idx = gap_idx
+    periods.append((attack_sorted.loc[start_idx, "Timestamp"],
+                    attack_sorted.loc[attack_sorted.index[-1], "Timestamp"]))
+
+    print(f"\nFound {len(periods)} distinct attack periods:")
+    for i, (start, end) in enumerate(periods, 1):
+        duration = (end - start).total_seconds()
+        rows = len(attack[(attack["Timestamp"] >= start) & (attack["Timestamp"] <= end)])
+        print(f"  {i:2d}. {start} to {end} ({duration:.0f}s, {rows} rows)")
+
+
 if __name__ == "__main__":
     print("Loading data...")
     normal, attack = load_or_create_processed()
     normal = clean_normal_data(normal)
-    part2_class_distribution(normal, attack)
+    part3_timeseries(normal, attack)

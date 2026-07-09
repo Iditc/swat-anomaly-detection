@@ -72,6 +72,16 @@ Not "is this row fake" — but **"is the system behaving abnormally over time."*
 
 This is why **time-window features** (rolling mean, rolling std, rate of change) are critical — a single row in isolation may look normal, but the pattern over time reveals the attack.
 
+### Data quality issues found
+
+| Issue | Details | Resolution |
+|-------|---------|------------|
+| **Missing values** | 7 columns (`MV101`, `AIT201`, `MV201`, `P201`, `P202`, `P204`, `MV303`) have NaN for the first 5.75 days (991,800 rows). These sensors simply weren't recording before 28/12/2015 10:00. All 7 share the exact same NaN pattern — not random, one contiguous block. | Drop rows before 28/12/2015 10:00 (keep only the period with complete data) |
+| **Duplicate rows** | 495,000 timestamps appear twice with fully identical values across all 51 columns. Pure duplicates — likely an export bug. | `drop_duplicates()` — no information lost |
+| **dtype mismatch** | 6 discrete columns (`MV101`, `MV201`, `P201`, `P202`, `P204`, `MV303`) are `float64` in normal data but `int64` in attack data. Caused by NaN forcing float — not a real type difference. | Resolves automatically after dropping the NaN period and casting to int |
+
+**After cleanup:** ~395,298 clean normal rows + 54,621 attack rows, all 51 sensors fully populated.
+
 ## Project Structure
 
 ```

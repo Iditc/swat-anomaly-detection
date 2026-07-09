@@ -47,19 +47,10 @@ The **SWaT testbed** is a real water treatment plant built at SUTD university (S
 
 Each row = **one second** of simultaneous readings from all 51 sensors.
 
-| File | Raw Rows | After Cleanup | Description |
-|------|----------|---------------|-------------|
-| `normal.csv` | 1,387,098 | 395,298 | Normal operation (training data) |
-| `attack.csv` | 54,621 | 54,621 | Rows labeled as attack during 36 cyberattack scenarios |
-
-### Class distribution (after cleanup)
-
-| Class | Rows | Percentage |
-|-------|------|-----------|
-| Normal | 395,298 | 87.9% |
-| Attack | 54,621 | 12.1% |
-
-**Imbalance ratio:** 7.2:1 (Normal:Attack) — still imbalanced, so **F1 macro** is the primary evaluation metric, not accuracy.
+| File | Raw Rows | Description |
+|------|----------|-------------|
+| `normal.csv` | 1,387,098 | 11 days of normal operation (training data) |
+| `attack.csv` | 54,621 | Rows labeled as attack during 36 cyberattack scenarios |
 
 ### Attack types
 
@@ -79,7 +70,9 @@ Not "is this row fake" — but **"is the system behaving abnormally over time."*
 
 This is why **time-window features** (rolling mean, rolling std, rate of change) are critical — a single row in isolation may look normal, but the pattern over time reveals the attack.
 
-### Data quality issues found
+## EDA Findings
+
+### 1. Data quality issues
 
 | Issue | Details | Resolution |
 |-------|---------|------------|
@@ -87,7 +80,16 @@ This is why **time-window features** (rolling mean, rolling std, rate of change)
 | **Duplicate rows** | 495,000 timestamps appear twice with fully identical values across all 51 columns. Pure duplicates — likely an export bug. | `drop_duplicates()` — no information lost |
 | **dtype mismatch** | 6 discrete columns (`MV101`, `MV201`, `P201`, `P202`, `P204`, `MV303`) are `float64` in normal data but `int64` in attack data. Caused by NaN forcing float — not a real type difference. | Resolves automatically after dropping the NaN period and casting to int |
 
-**After cleanup:** ~395,298 clean normal rows + 54,621 attack rows, all 51 sensors fully populated.
+**After cleanup:** 395,298 clean normal rows + 54,621 attack rows, all 51 sensors fully populated.
+
+### 2. Class distribution (after cleanup)
+
+| Class | Rows | Percentage |
+|-------|------|-----------|
+| Normal | 395,298 | 87.9% |
+| Attack | 54,621 | 12.1% |
+
+**Imbalance ratio:** 7.2:1 (Normal:Attack) — still imbalanced, so **F1 macro** is the primary evaluation metric, not accuracy. The cleanup itself improved the ratio significantly (raw data was 25:1).
 
 ## Project Structure
 
@@ -117,4 +119,4 @@ pip install -r requirements.txt
 
 ## Status
 
-🚧 Under development
+Under development

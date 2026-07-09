@@ -72,6 +72,21 @@ def load_or_create_processed() -> tuple[pd.DataFrame, pd.DataFrame]:
     return normal_df, attack_df
 
 
+SENSOR_START_TIME = pd.Timestamp("2015-12-28 10:00:00")
+
+DISCRETE_COLUMNS = ["MV101", "MV201", "P201", "P202", "P204", "MV303"]
+
+
+def clean_normal_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop early period with missing sensors, remove duplicates, fix dtypes."""
+    df = df[df["Timestamp"] >= SENSOR_START_TIME].copy()
+    df = df.drop_duplicates()
+    for col in DISCRETE_COLUMNS:
+        if col in df.columns:
+            df[col] = df[col].astype(int)
+    return df.reset_index(drop=True)
+
+
 def get_sensor_columns(df: pd.DataFrame) -> list[str]:
     """Return list of sensor/actuator feature columns (exclude Timestamp and label)."""
     exclude = {"Timestamp", "label", "Normal/Attack"}

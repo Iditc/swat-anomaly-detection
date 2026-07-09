@@ -47,12 +47,19 @@ The **SWaT testbed** is a real water treatment plant built at SUTD university (S
 
 Each row = **one second** of simultaneous readings from all 51 sensors.
 
-| File | Rows | Description |
-|------|------|-------------|
-| `normal.csv` | 1,387,098 | 11 days of normal operation (training data) |
-| `attack.csv` | 54,621 | Rows labeled as attack during 36 cyberattack scenarios |
+| File | Raw Rows | After Cleanup | Description |
+|------|----------|---------------|-------------|
+| `normal.csv` | 1,387,098 | 395,298 | Normal operation (training data) |
+| `attack.csv` | 54,621 | 54,621 | Rows labeled as attack during 36 cyberattack scenarios |
 
-**Class imbalance:** 25:1 (Normal:Attack)
+### Class distribution (after cleanup)
+
+| Class | Rows | Percentage |
+|-------|------|-----------|
+| Normal | 395,298 | 87.9% |
+| Attack | 54,621 | 12.1% |
+
+**Imbalance ratio:** 7.2:1 (Normal:Attack) — still imbalanced, so **F1 macro** is the primary evaluation metric, not accuracy.
 
 ### Attack types
 

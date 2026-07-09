@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from src.preprocessing.load_data import get_sensor_columns, load_or_create_processed
+from src.preprocessing.load_data import (
+    clean_normal_data,
+    get_sensor_columns,
+    load_or_create_processed,
+)
 
 FIGURES_DIR = Path(__file__).resolve().parents[2] / "results" / "figures"
 
@@ -48,7 +52,45 @@ def part1_basic_statistics(normal: pd.DataFrame, attack: pd.DataFrame) -> None:
     print(normal[float_cols].describe().round(2).to_string())
 
 
+def part2_class_distribution(normal: pd.DataFrame, attack: pd.DataFrame) -> None:
+    """Analyze and visualize class distribution after cleanup."""
+    print("\n" + "=" * 60)
+    print("PART 2 — CLASS DISTRIBUTION (after cleanup)")
+    print("=" * 60)
+
+    total = len(normal) + len(attack)
+    print(f"\nNormal: {len(normal):>10,} ({len(normal)/total*100:.1f}%)")
+    print(f"Attack: {len(attack):>10,} ({len(attack)/total*100:.1f}%)")
+    print(f"Total:  {total:>10,}")
+    print(f"Imbalance ratio: {len(normal)/len(attack):.1f}:1")
+
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    counts = {"Normal": len(normal), "Attack": len(attack)}
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(counts.keys(), counts.values(), color=["#2a78d6", "#e34948"])
+    ax.set_ylabel("Number of Samples")
+    ax.set_title("SWaT Dataset — Class Distribution (after cleanup)")
+
+    for bar, count in zip(bars, counts.values()):
+        pct = count / total * 100
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height(),
+            f"{count:,}\n({pct:.1f}%)",
+            ha="center",
+            va="bottom",
+            fontweight="bold",
+        )
+
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "class_distribution.png", dpi=150)
+    plt.close()
+    print(f"\nSaved: {FIGURES_DIR / 'class_distribution.png'}")
+
+
 if __name__ == "__main__":
     print("Loading data...")
     normal, attack = load_or_create_processed()
-    part1_basic_statistics(normal, attack)
+    normal = clean_normal_data(normal)
+    part2_class_distribution(normal, attack)

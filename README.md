@@ -91,6 +91,84 @@ This is why **time-window features** (rolling mean, rolling std, rate of change)
 
 **Imbalance ratio:** 7.2:1 (Normal:Attack) — still imbalanced, so **F1 macro** is the primary evaluation metric, not accuracy. The cleanup itself improved the ratio significantly (raw data was 25:1).
 
+### 3. Time-series behavior
+
+We plotted 6 key sensors across the full timeline (normal + attack periods combined) to understand how attacks manifest over time.
+
+![Sensor time-series with attack periods highlighted](results/figures/sensor_timeseries.png)
+
+**Key observations:**
+
+| Sensor | Stage | Normal behavior | Attack behavior |
+|--------|-------|----------------|-----------------|
+| LIT101 | P1 | Smooth fill/drain cycle (~42 min period) | Sharp drops or frozen values |
+| FIT101 | P1 | Stable flow when valve is open | Flow drops to zero while valve reports open |
+| AIT201 | P2 | Gradual chemical changes | Sudden jumps without dosing |
+| LIT301 | P3 | Regular UF tank level oscillation | Level stuck at constant value |
+| FIT401 | P4 | Steady dechlorination flow | Flow spikes or disappears |
+| AIT501 | P5 | Stable RO analysis readings | Large deviations — cascade effect from upstream attacks |
+
+**Attack periods:** 34 distinct attack periods identified, ranging from a few seconds to several hours.
+
+**Time-series analysis for feature engineering:**
+
+We tested four time-series analysis techniques on LIT101 to understand which patterns distinguish normal from attack behavior:
+
+| Analysis | What it measures | Normal vs Attack | Feature it creates |
+|----------|-----------------|------------------|-------------------|
+| **Autocorrelation** | How "smooth" the signal is over time | Normal: 0.979 at lag 60s / Attack: 0.946 — attack data is less smooth | `rolling_autocorr` — drop in smoothness = anomaly |
+| **Periodicity (FFT)** | Repeating cycles in the signal | Dominant cycle of ~42 min (pump fill/drain). Attack breaks the cycle | `cycle_deviation` — how far from expected cycle phase |
+| **Cross-correlation** | Physical relationship between sensors | MV101→FIT101 correlation = 0.961 at 1s lag. Valve controls flow | `sensor_pair_residual` — break in physical relationship = anomaly |
+| **Rate of change** | Speed of value changes | Normal p99: 1.18 / Attack p99: 1.00 — some attacks *freeze* values | `rate_of_change` + `cusum` — sudden jumps or suspicious stillness |
+
+These analyses will drive automatic feature generation in the preprocessing stage (Day 2).
+
+### 4. Sensor distributions — normal vs attack (KS test)
+
+We compared the distribution of each continuous sensor between normal and attack data using the Kolmogorov-Smirnov (KS) test. KS measures the maximum distance between two distributions — a high KS statistic means the sensor behaves very differently during attacks.
+
+![Top 12 most different sensor distributions](results/figures/sensor_distributions.png)
+
+**KS test results for all 25 continuous sensors:**
+
+| Sensor | KS statistic | Different? | Interpretation |
+|--------|-------------|-----------|----------------|
+| LIT101 | 0.3253 | YES | Water level distribution shifts significantly during attacks |
+| FIT101 | 0.2007 | YES | Flow rate changes when attacks affect Stage 1 |
+| AIT201 | 0.1283 | YES | Chemical readings shift during Stage 2 attacks |
+| AIT202 | 0.3476 | YES | ORP sensor — one of the most affected |
+| AIT203 | 0.0528 | YES | Conductivity — smaller but detectable shift |
+| FIT201 | 0.2128 | YES | Flow in chemical treatment changes |
+| AIT401 | 0.0284 | YES | Dechlorination analysis — mild shift |
+| AIT402 | 0.0380 | YES | Second dechlorination sensor |
+| FIT401 | 0.0478 | YES | Dechlorination flow — small shift |
+| LIT401 | 0.0694 | YES | Dechlorination tank level |
+| AIT501 | 0.3082 | YES | RO analysis — heavily affected (cascade from upstream) |
+| AIT502 | 0.2723 | YES | Second RO sensor — also heavily affected |
+| AIT503 | 0.0076 | no | Minimal distribution change |
+| AIT504 | 0.0043 | no | Minimal distribution change |
+| FIT501 | 0.1296 | YES | RO flow — moderate shift |
+| FIT502 | 0.1309 | YES | Second RO flow sensor |
+| FIT503 | 0.0025 | no | Nearly identical distributions |
+| FIT504 | 0.0026 | no | Nearly identical distributions |
+| PIT501 | 0.0785 | YES | RO pressure affected |
+| PIT502 | 0.0709 | YES | Second pressure sensor |
+| PIT503 | 0.0040 | no | Minimal change |
+| FIT601 | 0.0131 | YES | Backwash flow — small but detectable |
+| DPIT301 | 0.1118 | YES | UF differential pressure — moderate shift |
+| FIT301 | 0.1069 | YES | UF flow rate — moderate shift |
+| LIT301 | 0.2453 | YES | UF tank level — significant shift |
+
+**Key insight — cascade effect:** Stage P5 (Reverse Osmosis) sensors like AIT501 (KS=0.308) and AIT502 (KS=0.272) are among the most affected, even though most attacks target upstream stages (P1, P2). This is because water flows through the system — an attack on P1 propagates downstream. This makes cross-stage features valuable for detection.
+
+**KS tiers for feature engineering (Day 2):**
+
+| Tier | KS range | Sensors | Features to generate |
+|------|----------|---------|---------------------|
+| High | > 0.2 | AIT202, LIT101, AIT501, AIT502, LIT301, FIT201, FIT101 | All: rolling_mean, rolling_std, rate_of_change, deviation_from_baseline |
+| Medium | 0.05–0.2 | FIT501, FIT502, AIT201, DPIT301, FIT301, PIT501, PIT502, LIT401, AIT203, FIT401 | Basic: rolling_mean, rate_of_change |
+| Low | < 0.05 | AIT503, AIT504, FIT503, FIT504, PIT503, AIT401, AIT402, FIT601 | Raw value only |
+
 ## Project Structure
 
 ```

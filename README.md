@@ -211,6 +211,44 @@ We computed the correlation matrix for all 25 continuous sensors in normal data,
 | PIT501 — PIT502 | Redundant sensors — should always agree |
 | AIT201 — AIT402 | Chemistry cascade (P2→P4) |
 
+### 6. Discrete features — actuators (valves, pumps, UV)
+
+26 discrete sensors control the physical system: motorized valves (MV, 3 states: 0=closed, 1=transitioning, 2=open), pumps (P, 2 states: 1=off, 2=on), and UV dechlorinator.
+
+![Discrete sensor state changes — normal vs attack](results/figures/discrete_state_changes.png)
+
+**Biggest state changes during attacks:**
+
+| Sensor | Type | Normal %ON | Attack %ON | Diff | Meaning |
+|--------|------|-----------|-----------|------|---------|
+| P403 | Pump | 0% | 100% | 100% | Never runs normally, always on during attack |
+| P204 | Pump | 100% | 0.1% | 99.9% | Always on, shuts down during attack |
+| P206 | Pump | 100% | 0.1% | 99.9% | Always on, shuts down during attack |
+| UV401 | UV | 100% | 39.2% | 60.8% | UV dechlorinator turns off — water safety risk |
+| MV304 | Valve | 3.5% | 63.6% | 60.1% | Rarely open valve suddenly stays open |
+| P402 | Pump | 100% | 41.5% | 58.5% | Dechlorination pump turning off |
+
+**Physical contradictions — impossible actuator + sensor combinations:**
+
+| Contradiction | Normal | Attack | What it means |
+|--------------|--------|--------|--------------|
+| P501 off + RO flow exists | 0.01% (59 rows) | **2.34%** (1,276 rows) | Pump is off but water is flowing — physically impossible |
+| P301 on + no UF flow | 13.6% | **68.5%** | Pump running but no flow — 5x increase during attack |
+
+**Always-on sensors that change during attacks:**
+- **P204** — always OFF in normal data, turns ON during attack (never seen in training)
+- **P206** — always OFF in normal data, turns ON during attack (never seen in training)
+
+Any state change in these sensors is an immediate anomaly indicator.
+
+**Feature engineering ideas (Day 2):**
+
+| Feature | What it captures |
+|---------|-----------------|
+| `actuator_sensor_contradiction` | Pump on + no flow, or pump off + flow exists |
+| `unexpected_state_change` | Always-constant sensor suddenly changes state |
+| `switching_rate` | Number of state changes in rolling window — abnormal switching frequency |
+
 ## Project Structure
 
 ```

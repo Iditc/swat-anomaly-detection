@@ -169,6 +169,48 @@ We compared the distribution of each continuous sensor between normal and attack
 | Medium | 0.05–0.2 | FIT501, FIT502, AIT201, DPIT301, FIT301, PIT501, PIT502, LIT401, AIT203, FIT401 | Basic: rolling_mean, rate_of_change |
 | Low | < 0.05 | AIT503, AIT504, FIT503, FIT504, PIT503, AIT401, AIT402, FIT601 | Raw value only |
 
+### 5. Sensor correlations — physical relationships and attack signatures
+
+We computed the correlation matrix for all 25 continuous sensors in normal data, then compared it to attack data to find relationships that break during attacks.
+
+![Sensor correlation heatmap — normal data](results/figures/correlation_heatmap_normal.png)
+
+**Strongest physical relationships (normal data):**
+
+| Pair | Correlation | Physical meaning |
+|------|------------|-----------------|
+| PIT501 — PIT503 | 0.993 | Two pressure sensors on same RO stage — nearly identical |
+| DPIT301 — FIT301 | 0.971 | Differential pressure drives UF flow — direct physical cause |
+| FIT503 — FIT504 | 0.938 | Two RO flow sensors — redundant measurement |
+| AIT201 — AIT202 | -0.910 | pH vs ORP — inverse chemistry (pH up → ORP down) |
+| AIT402 — AIT502 | 0.890 | Chemical readings across stages P4→P5 — cascade |
+
+![Correlation changes during attacks](results/figures/correlation_change_heatmap.png)
+
+**Biggest correlation changes during attacks:**
+
+| Pair | Normal | Attack | Change | What it means |
+|------|--------|--------|--------|--------------|
+| AIT402 — PIT502 | +0.31 | -0.85 | **1.16** | Correlation flipped sign — physically impossible |
+| AIT402 — AIT501 | +0.29 | -0.84 | **1.13** | P4→P5 chemical relationship reversed |
+| AIT502 — PIT502 | +0.32 | -0.78 | **1.10** | RO sensors contradicting each other |
+| PIT501 — PIT502 | -0.08 | +0.90 | **0.99** | Uncorrelated sensors suddenly lock together |
+| FIT101 — LIT301 | +0.52 | -0.47 | **0.99** | P1 flow vs P3 tank level — cross-stage break |
+
+![Top 10 correlation changes — normal vs attack](results/figures/correlation_changes_top10.png)
+
+**Key insight — sign flips:** The strongest attack signal is correlations that **flip sign** (positive → negative or vice versa). A physical relationship that reverses direction is impossible — it means at least one sensor is compromised. This motivates `sensor_pair_residual` features: learn the normal relationship, measure deviation in real time.
+
+**Best sensor pairs for feature engineering (Day 2):**
+
+| Pair | Why it's a good feature |
+|------|------------------------|
+| AIT402 — PIT502 | Biggest flip (1.16) — P4 chemistry vs P5 pressure |
+| AIT402 — AIT501 | Cross-stage chemistry violation (P4→P5) |
+| FIT101 — LIT301 | Cross-stage flow-to-level (P1→P3) |
+| PIT501 — PIT502 | Redundant sensors — should always agree |
+| AIT201 — AIT402 | Chemistry cascade (P2→P4) |
+
 ## Project Structure
 
 ```

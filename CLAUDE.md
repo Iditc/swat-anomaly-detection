@@ -29,6 +29,7 @@ from raw sensor data to a deployed product on AWS.
 - src/preprocessing/ — Data loading, cleaning, feature engineering
 - src/eda/ — Exploratory analysis
 - src/models/ — Anomaly detection models
+- src/explainability/ — Attack classification + feature attribution
 - src/api/ — FastAPI application
 - src/monitoring/ — Drift detection
 - src/utils/ — Shared utilities

@@ -249,6 +249,46 @@ Any state change in these sensors is an immediate anomaly indicator.
 | `unexpected_state_change` | Always-constant sensor suddenly changes state |
 | `switching_rate` | Number of state changes in rolling window — abnormal switching frequency |
 
+### 7. Cascade timing — how fast attacks propagate between stages
+
+Attacks on one stage propagate to downstream stages. We measured the delay:
+
+| Path | Median delay | Meaning |
+|------|-------------|---------|
+| P4 → P5 | 145s (~2.5 min) | Adjacent stages — fast propagation |
+| P3 → P4 | 362s (~6 min) | Cross-stage — moderate delay |
+| P3 → P6 | 340s (~5.5 min) | Cross-system — similar timing |
+
+**Window size decision:** Rolling features should use windows of **60s, 120s, and 300s** to capture immediate effects, fast cascades, and full cross-stage propagation.
+
+### 8. Attack-by-attack profiling
+
+Each of the 34 attack periods was analyzed individually:
+
+| Metric | Min | Median | Max |
+|--------|-----|--------|-----|
+| Duration | 100s | 465s (~8 min) | 35,899s (~10 hrs) |
+| Sensors affected | 0 | 4 | 25 |
+| Stages affected | 0 | 3 | 5 |
+
+- **P1 most targeted** — 22/34 attacks (65%) affect Stage 1 (raw water supply)
+- **35% are subtle** — 12 attacks affect only 1-2 sensors, making them harder to detect
+- **Most affected sensors:** P101, P203, P205 (pumps) — affected in ~47% of attacks
+
+### 9. Normal operating modes
+
+The system cycles between three operating modes based on LIT101 water level:
+
+| Mode | Time | Behavior |
+|------|------|----------|
+| Filling | 43.1% | Water level rising, MV101 open 90%, P101 on 58% |
+| Draining | 43.2% | Water level dropping, MV101 open 53%, P101 on 91% |
+| Steady | 13.8% | Level stable, transitional state |
+
+**Key finding:** Stages P1-P3 behave very differently between modes (FIT101 varies 0.84σ), while P4-P6 run independently. The anomaly detector must account for operating mode to avoid false alarms during normal mode transitions.
+
+> **Full EDA report with detailed explanations:** see [results/eda_detailed_report.md](results/eda_detailed_report.md)
+
 ## Project Structure
 
 ```
@@ -257,6 +297,7 @@ swat-anomaly-detection/
 │   ├── preprocessing/   # Data loading, cleaning, feature engineering
 │   ├── eda/             # Exploratory data analysis
 │   ├── models/          # Isolation Forest, Autoencoder, LightGBM
+│   ├── explainability/  # Attack classification + feature attribution
 │   ├── api/             # FastAPI application
 │   ├── monitoring/      # Model drift detection
 │   └── utils/           # Shared utilities

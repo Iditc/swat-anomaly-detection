@@ -1,0 +1,2 @@
+threshold,f1_macro,f1_attack,precision_attack,recall_attack,f1_normal,ap,tp,fp,fn,tn
+0.5077,0.8259,0.7795,0.8797,0.6999,0.8723,0.8656,38227,5229,16394,73831

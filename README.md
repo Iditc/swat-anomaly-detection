@@ -289,6 +289,60 @@ The system cycles between three operating modes based on LIT101 water level:
 
 > **Full EDA report with detailed explanations:** see [results/eda_detailed_report.md](results/eda_detailed_report.md)
 
+## Preprocessing — KS-Driven Feature Engineering
+
+### Train/test split (temporal)
+
+| Set | Rows | Source | Labels |
+|-----|------|--------|--------|
+| Train | 316,238 | First 80% of normal data | 100% Normal |
+| Test | 133,681 | Last 20% normal + all attack data | 79,060 Normal + 54,621 Attack |
+
+Scaler fitted on train only (no data leakage). Temporal split — no random shuffling.
+
+### Automatic feature generation
+
+KS tests on each sensor determine which features to generate automatically:
+
+| Tier | KS threshold | Sensors | Features per sensor |
+|------|-------------|---------|-------------------|
+| High | > 0.2 | 21 | rolling_mean, rolling_std, rate_of_change, deviation_from_baseline × 3 windows |
+| Medium | 0.05–0.2 | 3 | rolling_mean, rate_of_change × 3 windows |
+| Low | < 0.05 | 1 | Raw value only |
+
+Additional features: 5 cross-sensor residuals, 4 physical contradiction detectors, 2 constant-sensor change detectors, switching rate per discrete sensor.
+
+**Result:** 53 original columns → 270 columns (217 engineered features), zero NaN values.
+
+The entire pipeline is config-driven via `config/feature_config.json` — adding a new sensor requires only rerunning the KS test, no code changes.
+
+## Model 1 — Isolation Forest (Baseline)
+
+Unsupervised anomaly detector trained on normal data only. Builds random trees that isolate data points — anomalies are isolated quickly (short path), normal points require many splits.
+
+### Results
+
+| Metric | Value |
+|--------|-------|
+| **F1 Macro** | **0.826** |
+| F1 Attack | 0.780 |
+| Precision (Attack) | 0.880 |
+| Recall (Attack) | 0.700 |
+| Average Precision | 0.866 |
+
+![Anomaly scores over time](results/figures/if_scores_timeline.png)
+
+![Confusion matrix](results/figures/if_confusion_matrix.png)
+
+### Overfitting analysis
+
+| Metric | Train (normal) | Test (normal) |
+|--------|---------------|---------------|
+| Mean score | 0.426 | 0.446 |
+| FP rate | 3.4% | 6.6% |
+
+Mild overfitting detected — FP rate doubles on test data. Likely caused by 268 features (88 with negative permutation importance). Feature selection planned for Day 5 (LightGBM).
+
 ## Project Structure
 
 ```

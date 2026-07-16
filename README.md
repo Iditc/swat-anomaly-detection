@@ -291,14 +291,23 @@ The system cycles between three operating modes based on LIT101 water level:
 
 ## Preprocessing — KS-Driven Feature Engineering
 
-### Train/test split (temporal)
+### Data split strategy
 
-| Set | Rows | Source | Labels |
-|-----|------|--------|--------|
-| Train | 316,238 | First 80% of normal data | 100% Normal |
-| Test | 133,681 | Last 20% normal + all attack data | 79,060 Normal + 54,621 Attack |
+`normal.csv` and `attack.csv` overlap in time (Dec 28 – Jan 2). Each second appears exclusively in one file — no duplicates across files.
 
-Scaler fitted on train only (no data leakage). Temporal split — no random shuffling.
+We use only the overlap period, combine both files by timestamp, and split 80/20 temporally:
+
+| Set | Rows | Normal | Attack | Period |
+|-----|------|--------|--------|--------|
+| Train | 358,532 | 308,615 | 49,917 | Dec 28 – Jan 1 (first 80%) |
+| Test | 89,633 | 84,929 | 4,704 | Jan 1 – Jan 2 (last 20%) |
+
+Scaler fitted on normal rows in the train split only (no data leakage).
+
+**Model training strategies on the same split:**
+- **Supervised models** (LightGBM, Random Forest): train on all train data, use `scale_pos_weight` for imbalance
+- **Unsupervised models** (Autoencoder, Isolation Forest): train on label=0 from train only
+- **All models share the same test set** for fair comparison
 
 ### Automatic feature generation
 
@@ -312,36 +321,53 @@ KS tests on each sensor determine which features to generate automatically:
 
 Additional features: 5 cross-sensor residuals, 4 physical contradiction detectors, 2 constant-sensor change detectors, switching rate per discrete sensor.
 
-**Result:** 53 original columns → 270 columns (217 engineered features), zero NaN values.
+**Result:** 53 original columns → 258 columns (205 engineered features), zero NaN values.
+
+### Feature selection (LightGBM importance)
+
+LightGBM was trained on the full train set to identify which features actually contribute to detection. Features with zero importance were removed:
+
+| Status | Count | Examples |
+|--------|-------|---------|
+| **Kept** | 142 | rolling_mean, rolling_std, deviation, residuals, raw sensors |
+| **Removed** | 114 | rate_of_change (21/25 zero), contradiction (4/4 zero), changed (2/2 zero) |
+
+Selected features saved in `config/selected_features.json` — automatically applied by `feature_engineering.py`.
 
 The entire pipeline is config-driven via `config/feature_config.json` — adding a new sensor requires only rerunning the KS test, no code changes.
 
-## Model 1 — Isolation Forest (Baseline)
+## Models to Compare
 
-Unsupervised anomaly detector trained on normal data only. Builds random trees that isolate data points — anomalies are isolated quickly (short path), normal points require many splits.
+All models evaluated on the same test set (89,633 rows: 84,929 normal + 4,704 attack):
 
-### Results
+| Model | Type | Training data | Status |
+|-------|------|--------------|--------|
+| Isolation Forest | Unsupervised | Normal only | Needs re-run with new split |
+| LightGBM | Supervised | Normal + Attack | Done (feature selection) |
+| Autoencoder | Unsupervised | Normal only | Planned |
+| One-Class SVM | Unsupervised | Normal only | Planned |
+| Random Forest | Supervised | Normal + Attack | Planned |
+| LSTM | Supervised | Normal + Attack | Planned |
+
+## Model Results
+
+### LightGBM (feature selection + baseline)
+
+Supervised classifier trained on labeled data. Used first for **feature importance-based selection** (142 features kept), then evaluated as a detection model.
 
 | Metric | Value |
 |--------|-------|
-| **F1 Macro** | **0.826** |
-| F1 Attack | 0.780 |
-| Precision (Attack) | 0.880 |
-| Recall (Attack) | 0.700 |
-| Average Precision | 0.866 |
+| **F1 Macro** | **0.5657** |
+| Precision (Attack) | 91.8% |
+| Recall (Attack) | 8.6% |
+| TP | 402 |
+| FP | 36 |
+| FN | 4,302 |
+| TN | 84,893 |
 
-![Anomaly scores over time](results/figures/if_scores_timeline.png)
+![Confusion matrix](results/figures/lgbm_confusion_matrix.png)
 
-![Confusion matrix](results/figures/if_confusion_matrix.png)
-
-### Overfitting analysis
-
-| Metric | Train (normal) | Test (normal) |
-|--------|---------------|---------------|
-| Mean score | 0.426 | 0.446 |
-| FP rate | 3.4% | 6.6% |
-
-Mild overfitting detected — FP rate doubles on test data. Likely caused by 268 features (88 with negative permutation importance). Feature selection planned for Day 5 (LightGBM).
+Low recall is expected — attacks in the test period (Jan 1–2) differ from attack patterns in the train period (Dec 28–Jan 1). The temporal split creates a realistic scenario where the model encounters previously unseen attack types.
 
 ## Project Structure
 

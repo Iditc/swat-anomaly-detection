@@ -40,6 +40,30 @@ from raw sensor data to a deployed product on AWS.
 - results/figures/ — Plots
 - results/metrics/ — Model performance
 
+## Data Split Strategy
+- normal.csv (Dec 22 - Jan 2, 1.39M rows, all label=0) and attack.csv (Dec 28 - Jan 2, 54K rows, all label=1) overlap in time (Dec 28 - Jan 2)
+- Use only the overlap period — combine normal + attack by timestamp
+- 80/20 temporal split: Train 358,532 rows (308K normal + 50K attack), Test 89,633 rows (85K normal + 4.7K attack)
+- Scaler fitted on normal rows in train split only (no data leakage)
+- Same test set used for ALL models (fair comparison)
+- Supervised models (LightGBM, RF): train on all train data with scale_pos_weight
+- Unsupervised models (Autoencoder): train on label=0 from train only
+
+## Feature Selection
+- LightGBM used for feature importance-based selection
+- 142 features kept (importance > 0), 114 zero-importance features removed
+- Saved in config/selected_features.json, auto-applied by feature_engineering.py
+- Feature types largely removed: rate_of_change (21/25 zero), contradiction (4/4 zero), changed (2/2 zero)
+
+## Current Model Results (LightGBM after feature selection)
+- F1 Macro: 0.5657
+- Precision (Attack): 91.8%, Recall (Attack): 8.6%
+- TP: 402, FP: 36, FN: 4,302, TN: 84,893
+- Low recall expected — attacks in test period differ from train period (temporal split)
+
+## Models to Compare (same test set)
+- Isolation Forest, LightGBM, Autoencoder, One-Class SVM, Random Forest, LSTM
+
 ## Key Design Decisions
 - Primary metric: F1 macro (imbalanced data)
 - Temporal train/test split (no data leakage)

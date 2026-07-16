@@ -1,0 +1,7 @@
+Model,f1_macro,precision_attack,recall_attack,f1_attack
+One-Class SVM,0.8072,0.6682,0.6025,0.6337
+Autoencoder,0.7618,0.5882,0.5111,0.5469
+Isolation Forest,0.6359,0.5801,0.2,0.2975
+LSTM,0.6092,0.3564,0.1926,0.2501
+Random Forest,0.5942,0.8586,0.1214,0.2127
+LightGBM,0.5657,0.9178,0.0855,0.1564

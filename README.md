@@ -336,38 +336,22 @@ Selected features saved in `config/selected_features.json` — automatically app
 
 The entire pipeline is config-driven via `config/feature_config.json` — adding a new sensor requires only rerunning the KS test, no code changes.
 
-## Models to Compare
+## Model Comparison
 
-All models evaluated on the same test set (89,633 rows: 84,929 normal + 4,704 attack):
+All 6 models evaluated on the same test set (89,633 rows: 84,929 normal + 4,704 attack), 142 features after selection.
 
-| Model | Type | Training data | Status |
-|-------|------|--------------|--------|
-| Isolation Forest | Unsupervised | Normal only | Needs re-run with new split |
-| LightGBM | Supervised | Normal + Attack | Done (feature selection) |
-| Autoencoder | Unsupervised | Normal only | Planned |
-| One-Class SVM | Unsupervised | Normal only | Planned |
-| Random Forest | Supervised | Normal + Attack | Planned |
-| LSTM | Supervised | Normal + Attack | Planned |
+| Model | Type | F1 Macro | Precision | Recall | F1 Attack |
+|-------|------|----------|-----------|--------|-----------|
+| **One-Class SVM** | Unsupervised | **0.8072** | 0.6682 | 0.6025 | 0.6337 |
+| Autoencoder | Unsupervised | 0.7618 | 0.5882 | 0.5111 | 0.5469 |
+| Isolation Forest | Unsupervised | 0.6359 | 0.5801 | 0.2000 | 0.2975 |
+| LSTM | Supervised | 0.6092 | 0.3564 | 0.1926 | 0.2501 |
+| Random Forest | Supervised | 0.5942 | 0.8586 | 0.1214 | 0.2127 |
+| LightGBM | Supervised | 0.5657 | 0.9178 | 0.0855 | 0.1564 |
 
-## Model Results
+**Key insight:** Unsupervised models (SVM, Autoencoder) outperform supervised ones (LightGBM, RF, LSTM). This makes sense — the temporal split means the test set contains attack types not seen during training. Supervised models learn specific attack patterns and miss new ones, while unsupervised models learn "what is normal" and flag any deviation.
 
-### LightGBM (feature selection + baseline)
-
-Supervised classifier trained on labeled data. Used first for **feature importance-based selection** (142 features kept), then evaluated as a detection model.
-
-| Metric | Value |
-|--------|-------|
-| **F1 Macro** | **0.5657** |
-| Precision (Attack) | 91.8% |
-| Recall (Attack) | 8.6% |
-| TP | 402 |
-| FP | 36 |
-| FN | 4,302 |
-| TN | 84,893 |
-
-![Confusion matrix](results/figures/lgbm_confusion_matrix.png)
-
-Low recall is expected — attacks in the test period (Jan 1–2) differ from attack patterns in the train period (Dec 28–Jan 1). The temporal split creates a realistic scenario where the model encounters previously unseen attack types.
+**Next steps:** Focus on tuning One-Class SVM and Autoencoder as top performers.
 
 ## Project Structure
 

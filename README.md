@@ -351,7 +351,51 @@ All 6 models evaluated on the same test set (89,633 rows: 84,929 normal + 4,704 
 
 **Key insight:** Unsupervised models (SVM, Autoencoder) outperform supervised ones (LightGBM, RF, LSTM). This makes sense — the temporal split means the test set contains attack types not seen during training. Supervised models learn specific attack patterns and miss new ones, while unsupervised models learn "what is normal" and flag any deviation.
 
-**Next steps:** Focus on tuning One-Class SVM and Autoencoder as top performers.
+### Tuning — One-Class SVM
+
+Tested different `nu` and `gamma` values, and training set sizes (50K–308K samples):
+
+**Sample size scaling** — no benefit from more data:
+
+| Samples | Train Time | F1 Macro |
+|---------|-----------|----------|
+| 50,000 | 6s | 0.8072 |
+| 100,000 | 31s | 0.8063 |
+| 308,615 | 36min | 0.8063 |
+
+**Hyperparameter grid search** (30 combinations):
+
+| nu | gamma | F1 Macro | Precision | Recall |
+|----|-------|----------|-----------|--------|
+| 0.001 | 0.005 | **0.8084** | 0.6716 | 0.6037 |
+| 0.005 | 0.005 | 0.8083 | 0.6712 | 0.6037 |
+| 0.01 | scale (baseline) | 0.8072 | 0.6682 | 0.6025 |
+
+**Conclusion:** Marginal improvement (0.8072 → 0.8084). The SVM has reached its ceiling on this data — the boundary between normal and anomalous is already well-defined with 50K samples.
+
+### Tuning — Autoencoder
+
+Tested 4 architectures × 2 epoch counts + batch size variations (10 configs total):
+
+| Architecture | Bottleneck | Epochs | F1 Macro | Precision | Recall |
+|-------------|-----------|--------|----------|-----------|--------|
+| **Narrow + BN + Dropout** | **8** | **100** | **0.8055** | 0.5896 | **0.6835** |
+| Deeper + BN + Dropout | 24 | 50 | 0.7985 | 0.6102 | 0.6267 |
+| Wide + BN | 64 | 100 | 0.7919 | 0.5685 | 0.6518 |
+| Basic (baseline) | 17 | 50 | 0.7474 | 0.5893 | 0.4628 |
+
+**Improvement:** F1 Macro 0.762 → **0.805** (+5.6%), Recall 0.511 → **0.684** (+34%).
+
+**Key finding:** Stronger compression (bottleneck=8) forces the autoencoder to learn only the essential structure of normal data, making deviations more detectable. BatchNormalization and Dropout prevent overfitting to training noise.
+
+### Updated results after tuning
+
+| Model | F1 Macro | Precision | Recall |
+|-------|----------|-----------|--------|
+| **One-Class SVM** (tuned) | **0.8084** | 0.6716 | 0.6037 |
+| **Autoencoder** (tuned) | **0.8055** | 0.5896 | 0.6835 |
+
+Both models are now near-equal in F1, but with different tradeoffs — SVM has higher precision, Autoencoder has higher recall.
 
 ## Project Structure
 

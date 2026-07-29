@@ -445,6 +445,69 @@ Architecture: LSTM(64) → LSTM(32) → bottleneck → LSTM(32) → LSTM(64) →
 | Autoencoder (tuned) | Unsupervised | 0.8055 | 0.5896 | 0.6835 |
 | LSTM Autoencoder | Seq. unsupervised | 0.7695 | 0.5820 | 0.5442 |
 
+### Point-Adjust Evaluation — comparison with published papers
+
+Most published results on the SWaT dataset use **point-adjust** evaluation, a method that inflates metrics significantly. Understanding the difference is important for fair comparison:
+
+**Standard evaluation:** Each data point is scored independently. If a model detects 50 out of 100 points in an attack window, recall for that window is 50%.
+
+**Point-adjust evaluation:** If **any single point** in an attack window is correctly flagged, the **entire window** counts as detected. The same 50/100 detection becomes 100% recall for that window. This inflates recall dramatically — a model only needs to catch one anomalous second out of a 10-minute attack to get full credit.
+
+**Why it matters:** Published papers reporting F1 > 0.95 on SWaT typically use point-adjust. Without understanding this, our standard F1 of 0.82 looks weak — but it's actually a stricter, more realistic measurement.
+
+#### Results — Standard vs Point-Adjust
+
+| Model | F1 Macro (Standard) | F1 Macro (Point-Adjust) | Recall (Standard) | Recall (Point-Adjust) |
+|-------|---------------------|------------------------|--------------------|-----------------------|
+| **One-Class SVM** | 0.8084 | **0.9000** | 0.6037 | 0.8841 |
+| Autoencoder | 0.7738 | 0.8703 | 0.5130 | 0.7819 |
+| OR Ensemble | 0.8071 | 0.8985 | 0.6040 | 0.8841 |
+
+**Inflation from point-adjust:**
+
+| Model | F1 Increase | Recall Increase |
+|-------|-------------|-----------------|
+| SVM | +0.092 | +0.280 |
+| Autoencoder | +0.097 | +0.269 |
+| OR Ensemble | +0.091 | +0.280 |
+
+**Key observations:**
+- Point-adjust inflates F1 by ~0.09 and recall by ~0.28 across all models
+- Our SVM reaches **F1 0.90** with point-adjust — respectable but not 0.99
+- The remaining gap comes from 3 completely missed attack windows (P1–P3) — even point-adjust can't help when zero points are detected
+
+#### Paper-Style Split — fair comparison with published results
+
+Most published SWaT papers use a different train/test split than ours. We tested both:
+
+| Split | Train Data | Test Data | Test Attack Windows |
+|-------|-----------|-----------|---------------------|
+| **Our split** | 80% of overlap period (308K normal + 50K attack) | 20% of overlap (85K normal + 5K attack) | 9 |
+| **Paper split** | All of `normal.csv` (395K rows, pure normal) | Full attack period (389K normal + 55K attack) | 35 |
+
+**Results with paper-style split:**
+
+| Model | Standard | Point-Adjust | Windows Caught |
+|-------|----------|-------------|----------------|
+| **OR Ensemble** | 0.8997 | **0.9539** | 24/35 |
+| Autoencoder | 0.8963 | 0.9492 | 22/35 |
+| SVM | 0.9011 | 0.9325 | 18/35 |
+
+**Comparison — our split vs paper split (both with point-adjust):**
+
+| Model | Our Split | Paper Split | Diff |
+|-------|-----------|-------------|------|
+| OR Ensemble | 0.8985 | **0.9539** | +0.055 |
+| Autoencoder | 0.8703 | **0.9492** | +0.079 |
+| SVM | 0.9000 | **0.9325** | +0.033 |
+
+**Why the paper split scores higher:**
+- **More training data:** 395K vs 308K normal rows — the model learns a richer picture of "normal"
+- **More attack windows:** 35 vs 9 — more chances for point-adjust to help (catching 1 point in any window counts as full detection)
+- **Different attack distribution:** The paper split test set has 12.3% attack ratio vs 5.2% in ours, which affects precision/recall tradeoffs
+
+**Bottom line:** With the same split and evaluation method as published papers, our OR Ensemble achieves **F1 0.954** — competitive with published results. The gap to 0.99 comes from 11 undetected attack windows (out of 35), which represent genuinely subtle attacks
+
 ## Project Structure
 
 ```

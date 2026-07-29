@@ -1,0 +1,7 @@
+method,f1_macro,precision,recall,f1_attack
+SVM (standard),0.9011,0.9315,0.7389,0.8241
+SVM (point-adjust),0.9325,0.9385,0.8296,0.8807
+AE (standard),0.8963,0.9064,0.7417,0.8158
+AE (point-adjust),0.9492,0.9216,0.9001,0.9107
+OR Ensemble (standard),0.8997,0.9041,0.7537,0.8221
+OR Ensemble (point-adjust),0.9539,0.9199,0.9184,0.9191

@@ -1,0 +1,7 @@
+method,f1_macro,precision,recall,f1_attack
+SVM (standard),0.8084,0.6716,0.6037,0.6358
+SVM (point-adjust),0.9,0.7496,0.8841,0.8114
+Autoencoder (standard),0.7738,0.6387,0.513,0.569
+Autoencoder (point-adjust),0.8703,0.7293,0.7819,0.7547
+OR Ensemble (standard),0.8071,0.6663,0.604,0.6336
+OR Ensemble (point-adjust),0.8985,0.7451,0.8841,0.8087

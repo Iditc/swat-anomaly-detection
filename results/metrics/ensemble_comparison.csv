@@ -1,0 +1,4 @@
+strategy,f1_macro,precision,recall,f1_attack
+OR (either),0.8189,0.6517,0.6622,0.6569
+AND (both),0.8025,0.6794,0.5772,0.6241
+Average scores,0.8083,0.6721,0.6031,0.6357

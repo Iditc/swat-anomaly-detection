@@ -397,6 +397,54 @@ Tested 4 architectures × 2 epoch counts + batch size variations (10 configs tot
 
 Both models are now near-equal in F1, but with different tradeoffs — SVM has higher precision, Autoencoder has higher recall.
 
+### Ensemble — SVM + Autoencoder
+
+Combined the two best models using three strategies:
+
+| Strategy | F1 Macro | Precision | Recall |
+|----------|----------|-----------|--------|
+| **OR (either flags)** | **0.8189** | 0.6517 | **0.6622** |
+| AND (both flag) | 0.8025 | **0.6794** | 0.5772 |
+| Average scores | 0.8083 | 0.6721 | 0.6031 |
+
+OR ensemble gives the best F1 (0.819), but per-attack analysis showed both models catch the **exact same** 6 attack periods and miss the same 3 — the ensemble adds almost no unique detections.
+
+### Attack period analysis
+
+9 attack periods in the test set. 3 are undetectable by all models:
+
+| Period | Duration | SVM | AE | Status |
+|--------|----------|-----|-----|--------|
+| P1 | 444s | 0% | 0% | **MISSED** — values within 1σ of normal |
+| P2 | 101s | 0% | 0% | **MISSED** — discrete sensor (P102) change only |
+| P3 | 481s | 0% | 0% | **MISSED** — subtle multi-sensor shift ~1.5σ |
+| P4–P9 | 100–1690s | 66–100% | 67–100% | Caught by both |
+
+**Why missed:** 99.0% of feature values in missed attacks fall within normal range (vs 88.7% for caught attacks). These are genuinely subtle attacks — sensor values shift by ~1σ, indistinguishable from natural noise at the single-point level.
+
+### LSTM Autoencoder — sequence-based detection
+
+Tested whether learning **temporal patterns** (60-second windows) could detect the subtle attacks that point-based models miss.
+
+Architecture: LSTM(64) → LSTM(32) → bottleneck → LSTM(32) → LSTM(64) → Dense(142). Trained on normal sequences only, 30 epochs.
+
+| Metric | Value |
+|--------|-------|
+| F1 Macro | 0.7695 |
+| Precision | 0.5820 |
+| Recall | 0.5442 |
+
+**Result:** P1, P2, P3 remain undetected (0%). The LSTM Autoencoder catches the same 6 attack periods as point-based models, with lower overall F1. Even temporal patterns in these 3 attacks look normal — they are inherently undetectable with this feature set.
+
+### Final model summary
+
+| Model | Type | F1 Macro | Precision | Recall |
+|-------|------|----------|-----------|--------|
+| **OR Ensemble (SVM+AE)** | Combined | **0.8189** | 0.6517 | 0.6622 |
+| One-Class SVM (tuned) | Unsupervised | 0.8084 | 0.6716 | 0.6037 |
+| Autoencoder (tuned) | Unsupervised | 0.8055 | 0.5896 | 0.6835 |
+| LSTM Autoencoder | Seq. unsupervised | 0.7695 | 0.5820 | 0.5442 |
+
 ## Project Structure
 
 ```

@@ -506,7 +506,33 @@ Most published SWaT papers use a different train/test split than ours. We tested
 - **More attack windows:** 35 vs 9 — more chances for point-adjust to help (catching 1 point in any window counts as full detection)
 - **Different attack distribution:** The paper split test set has 12.3% attack ratio vs 5.2% in ours, which affects precision/recall tradeoffs
 
-**Bottom line:** With the same split and evaluation method as published papers, our OR Ensemble achieves **F1 0.954** — competitive with published results. The gap to 0.99 comes from 11 undetected attack windows (out of 35), which represent genuinely subtle attacks
+**Bottom line:** With the same split and evaluation method as published papers, our OR Ensemble achieves **F1 0.954** — competitive with published results. The gap to 0.99 comes from 11 undetected attack windows (out of 35), which represent genuinely subtle attacks.
+
+### Error Analysis — new features for missed attacks
+
+Analyzed the 17 missed attack windows to understand why they were missed and designed targeted features:
+
+**Key finding:** Missed attacks have median max deviation of **3.5σ** vs **17.2σ** for caught attacks. But they do contain detectable patterns:
+- **Frozen sensors** — AIT401, FIT601, LIT401 show zero variance (value stuck at exactly one number). Normal sensors always have micro-fluctuations.
+- **Short spikes** — FIT601 spikes to 10.5σ briefly but the rolling mean hides it (mean deviation only 0.2σ).
+- **Discrete state changes** — 12/17 missed windows have actuator state changes that go undetected.
+
+**New features added:**
+1. **Frozen detection** (`sensor_frozen_10`) — rolling std over 10-second window = 0 → binary flag. 25 features.
+2. **Spike detection** (`sensor_spike_30`) — max/mean ratio in 30-second window. Catches short spikes that rolling averages smooth out. 25 features.
+
+**Results with new features (paper-style split):**
+
+| Model | Features | F1 Standard | F1 Point-Adjust | Windows Caught |
+|-------|----------|------------|----------------|----------------|
+| Baseline SVM | 142 | 0.9011 | 0.9325 | 18/35 |
+| New SVM | 306 | 0.8814 | 0.9340 | 17/35 |
+| **New Autoencoder** | 306 | 0.8883 | **0.9562** | **26/35** |
+| **New OR Ensemble** | 306 | 0.8876 | **0.9554** | **26/35** |
+
+**Improvement:** The Autoencoder with new features catches **26/35 windows** (up from 22), including 10 previously missed attacks. F1 point-adjust improved from 0.9492 to **0.9562**.
+
+The SVM struggles with 306 dimensions (curse of dimensionality), but the Autoencoder leverages the extra features effectively. The remaining 9 missed windows have max deviations of 1–2σ — genuinely indistinguishable from normal noise at the point level.
 
 ## Project Structure
 

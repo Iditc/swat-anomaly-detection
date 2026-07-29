@@ -1,8 +1,13 @@
 """Generate features from sensor data using KS-driven configuration."""
 
+import json
+from pathlib import Path
+
 import pandas as pd
 
 from src.preprocessing.feature_config import load_config
+
+SELECTED_FEATURES_PATH = Path(__file__).resolve().parents[2] / "config" / "selected_features.json"
 
 
 def compute_rolling_features(
@@ -88,6 +93,34 @@ def compute_constant_sensor_changes(
     return result
 
 
+def compute_frozen_detection(
+    df: pd.DataFrame, continuous_cols: list[str], window: int = 10,
+) -> dict[str, pd.Series]:
+    """Detect frozen sensors — rolling std == 0 means no micro-fluctuation."""
+    result = {}
+    for sensor in continuous_cols:
+        if sensor not in df.columns:
+            continue
+        rolling_std = df[sensor].rolling(window, min_periods=window).std().fillna(0)
+        result[f"{sensor}_frozen_{window}"] = (rolling_std == 0).astype(int)
+    return result
+
+
+def compute_spike_detection(
+    df: pd.DataFrame, continuous_cols: list[str], window: int = 30,
+) -> dict[str, pd.Series]:
+    """Detect short spikes — max-to-mean ratio in rolling window."""
+    result = {}
+    for sensor in continuous_cols:
+        if sensor not in df.columns:
+            continue
+        rolling_max = df[sensor].abs().rolling(window, min_periods=1).max()
+        rolling_mean = df[sensor].abs().rolling(window, min_periods=1).mean()
+        ratio = (rolling_max / rolling_mean.replace(0, 1)).fillna(0)
+        result[f"{sensor}_spike_{window}"] = ratio
+    return result
+
+
 def compute_switching_rate(
     df: pd.DataFrame, discrete_cols: list[str], window: int = 60,
 ) -> dict[str, pd.Series]:
@@ -159,8 +192,28 @@ def generate_features(
     discrete_cols = get_discrete_columns(df)
     new_cols.update(compute_switching_rate(df, discrete_cols, window=60))
 
+    # Error analysis features — detect subtle attacks
+    continuous_cols = [s for s in config["continuous_sensors"] if s in df.columns]
+    new_cols.update(compute_frozen_detection(df, continuous_cols, window=10))
+    new_cols.update(compute_spike_detection(df, continuous_cols, window=30))
+
     features_df = pd.DataFrame(new_cols, index=df.index)
-    return pd.concat([df, features_df], axis=1)
+    result = pd.concat([df, features_df], axis=1)
+
+    if SELECTED_FEATURES_PATH.exists():
+        result = apply_feature_selection(result)
+
+    return result
+
+
+def apply_feature_selection(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only selected features + Timestamp + label."""
+    with open(SELECTED_FEATURES_PATH) as f:
+        selected = json.load(f)["selected_features"]
+
+    keep = [c for c in ["Timestamp", "label"] if c in df.columns]
+    keep += [c for c in selected if c in df.columns]
+    return df[keep]
 
 
 def save_featured_data(

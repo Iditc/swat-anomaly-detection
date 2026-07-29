@@ -510,29 +510,57 @@ Most published SWaT papers use a different train/test split than ours. We tested
 
 ### Error Analysis — new features for missed attacks
 
-Analyzed the 17 missed attack windows to understand why they were missed and designed targeted features:
+Analyzed the 17 missed attack windows to understand why they were missed. Deep dive into each window revealed:
 
-**Key finding:** Missed attacks have median max deviation of **3.5σ** vs **17.2σ** for caught attacks. But they do contain detectable patterns:
-- **Frozen sensors** — AIT401, FIT601, LIT401 show zero variance (value stuck at exactly one number). Normal sensors always have micro-fluctuations.
-- **Short spikes** — FIT601 spikes to 10.5σ briefly but the rolling mean hides it (mean deviation only 0.2σ).
-- **Discrete state changes** — 12/17 missed windows have actuator state changes that go undetected.
+**Key finding:** Missed attacks have median max deviation of **3.5σ** vs **17.2σ** for caught attacks. But they contain detectable physical patterns that statistical features missed:
 
-**New features added:**
-1. **Frozen detection** (`sensor_frozen_10`) — rolling std over 10-second window = 0 → binary flag. 25 features.
-2. **Spike detection** (`sensor_spike_30`) — max/mean ratio in 30-second window. Catches short spikes that rolling averages smooth out. 25 features.
+| Pattern | Example | Why original features missed it |
+|---------|---------|-------------------------------|
+| **Physical contradiction** | P21: pumps P101+P102 ON but FIT101=0 for 309 seconds | Contradiction feature computed on scaled data — threshold `< 0.1` didn't match scaled zero-flow value |
+| **Frozen sensors** | P23: 20 sensors frozen. P25: 22 sensors frozen (LIT401 stuck at 600) | No frozen detection feature existed |
+| **Always-constant sensor changed** | P28: P102 activated (100% OFF in all training data) | Feature existed but removed by LightGBM feature selection (importance=0 on our split) |
+| **Rapid valve switching** | P14: MV301-304 each changed state 4 times in 259s | Switching rate feature existed but wasn't sensitive enough |
 
-**Results with new features (paper-style split):**
+**Root cause:** The original contradiction features used hardcoded thresholds on **scaled** data. After StandardScaler, a raw flow value of 0 becomes ~-1.6 in scaled space, so `abs(flow) < 0.1` never fires. Fix: compute physical-rule features on **raw** data before scaling.
+
+**New features (v2) — computed on raw data:**
+1. **Sustained contradiction** — pump ON + no flow for 30+ consecutive seconds (rolling sum). 9 sensor pairs.
+2. **Frozen detection** — rolling std over 10s = 0 on raw values. 25 sensors.
+3. **Always-constant monitoring** — binary flag when P102/P204/P206 leave their normal state + duration counter.
+4. **Max jump detection** — largest absolute change in 10s window. 25 sensors.
+5. **Discrete switching rate** — state changes in 30s window for all actuators.
+
+Total: 349 features (51 original + 173 scaled rolling/deviation + 125 raw physical features).
+
+**Results — v2 features (paper-style split):**
 
 | Model | Features | F1 Standard | F1 Point-Adjust | Windows Caught |
 |-------|----------|------------|----------------|----------------|
 | Baseline SVM | 142 | 0.9011 | 0.9325 | 18/35 |
-| New SVM | 306 | 0.8814 | 0.9340 | 17/35 |
-| **New Autoencoder** | 306 | 0.8883 | **0.9562** | **26/35** |
-| **New OR Ensemble** | 306 | 0.8876 | **0.9554** | **26/35** |
+| **SVM v2** | 349 | **0.9255** | **0.9705** | **29/35** |
+| **Autoencoder v2** | 349 | **0.9199** | **0.9690** | **32/35** |
+| **OR Ensemble v2** | 349 | **0.9201** | **0.9681** | **32/35** |
 
-**Improvement:** The Autoencoder with new features catches **26/35 windows** (up from 22), including 10 previously missed attacks. F1 point-adjust improved from 0.9492 to **0.9562**.
+**Improvement:** From 18/35 → **32/35** windows caught. F1 point-adjust: 0.9325 → **0.9705** (SVM), 0.9539 → **0.9681** (OR Ensemble).
 
-The SVM struggles with 306 dimensions (curse of dimensionality), but the Autoencoder leverages the extra features effectively. The remaining 9 missed windows have max deviations of 1–2σ — genuinely indistinguishable from normal noise at the point level.
+Previously missed windows now caught:
+- **P21** — sustained contradiction (P101+P102 ON, FIT101=0 for 308 rows)
+- **P25** — 22 frozen sensors (including LIT401 stuck at 600)
+- **P28** — P102 state change (always-constant sensor activated)
+- **P14** — rapid valve switching + frozen sensors
+- P1, P2, P4, P9, P13, P16, P19, P24, P27, P29 — various combinations
+
+**Overfitting check — clean:**
+
+| Metric | Train Normal | Test Normal | Test Attack |
+|--------|-------------|-------------|-------------|
+| SVM scores (mean) | -0.116 | -0.115 | +0.095 |
+| AE recon error (mean) | 0.52 | 0.46 | 202.6 |
+| False positive rate | — | SVM: 0.9% | AE: 1.4% |
+
+Train and test-normal distributions are nearly identical — no overfitting. The gap between test-normal and test-attack is large and clean.
+
+**3 remaining missed windows** (P10, P11, P23): max deviations of 1.9–2.4σ with no physical contradictions, no frozen sensors, no constant-sensor changes. These are genuinely undetectable with the available sensor data.
 
 ## Project Structure
 

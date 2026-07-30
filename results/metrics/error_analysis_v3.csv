@@ -1,0 +1,2 @@
+model,features,f1_standard,f1_point_adjust,windows_caught,fp_rate
+v3 ML+Rules,375,0.11698802488583888,0.11710955053197569,35,0.9931047076252006

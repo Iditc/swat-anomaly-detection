@@ -1,0 +1,2 @@
+f1_macro,f1_attack,precision_attack,recall_attack,f1_normal,ap,tp,fp,fn,tn
+0.5657,0.1564,0.9178,0.0855,0.9751,0.3825,402,36,4302,84893

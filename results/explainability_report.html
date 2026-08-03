@@ -1,0 +1,597 @@
+<title>SWaT Anomaly Detection — Explainability Report</title>
+<style>
+  @font-face {
+    font-family: 'DM Sans';
+    font-weight: 400;
+    src: local('DM Sans'), local('system-ui');
+  }
+  :root {
+    --surface: #f5f4f1;
+    --card: #ffffff;
+    --card-border: rgba(30,32,34,0.08);
+    --ink-primary: #1a1b1e;
+    --ink-secondary: #4a4b50;
+    --ink-muted: #84858a;
+    --accent: #2a6bac;
+    --accent-wash: rgba(42,107,172,0.08);
+    --accent-light: #d6e4f2;
+    --gridline: #e6e5e1;
+    --tag-manipulation: #2a78d6;
+    --tag-malfunction: #eb6834;
+    --tag-actuator: #1baf7a;
+    --tag-unknown: #898781;
+    --cat-rolling: #2a78d6;
+    --cat-roc: #1baf7a;
+    --cat-deviation: #e34948;
+    --cat-contradiction: #4a3aa7;
+    --cat-frozen: #eda100;
+    --cat-spike: #64b5cd;
+    --cat-constant: #e87ba4;
+    --cat-switching: #008300;
+    --cat-residual: #eb6834;
+    --cat-lowvar: #b3b3b3;
+    --cat-raw: #c98500;
+    --status-good: #0ca30c;
+    --status-critical: #d03b3b;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+    --radius: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      --surface: #131416;
+      --card: #1e1f23;
+      --card-border: rgba(255,255,255,0.07);
+      --ink-primary: #e8e7e3;
+      --ink-secondary: #b0afab;
+      --ink-muted: #78776f;
+      --accent: #4d94d6;
+      --accent-wash: rgba(77,148,214,0.12);
+      --accent-light: #1e3350;
+      --gridline: #2a2b2e;
+      --tag-manipulation: #3987e5;
+      --tag-malfunction: #d95926;
+      --tag-actuator: #199e70;
+      --tag-unknown: #898781;
+      --cat-rolling: #3987e5;
+      --cat-roc: #199e70;
+      --cat-deviation: #e66767;
+      --cat-contradiction: #9085e9;
+      --cat-frozen: #c98500;
+      --cat-spike: #64b5cd;
+      --cat-constant: #d55181;
+      --cat-switching: #008300;
+      --cat-residual: #d95926;
+      --cat-lowvar: #78776f;
+      --cat-raw: #eda100;
+      --status-good: #0ca30c;
+      --status-critical: #e66767;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+      --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface: #131416;
+    --card: #1e1f23;
+    --card-border: rgba(255,255,255,0.07);
+    --ink-primary: #e8e7e3;
+    --ink-secondary: #b0afab;
+    --ink-muted: #78776f;
+    --accent: #4d94d6;
+    --accent-wash: rgba(77,148,214,0.12);
+    --accent-light: #1e3350;
+    --gridline: #2a2b2e;
+    --tag-manipulation: #3987e5;
+    --tag-malfunction: #d95926;
+    --tag-actuator: #199e70;
+    --tag-unknown: #898781;
+    --cat-rolling: #3987e5;
+    --cat-roc: #199e70;
+    --cat-deviation: #e66767;
+    --cat-contradiction: #9085e9;
+    --cat-frozen: #c98500;
+    --cat-spike: #64b5cd;
+    --cat-constant: #d55181;
+    --cat-switching: #008300;
+    --cat-residual: #d95926;
+    --cat-lowvar: #78776f;
+    --cat-raw: #eda100;
+    --status-good: #0ca30c;
+    --status-critical: #e66767;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  :root[data-theme="light"] {
+    --surface: #f5f4f1;
+    --card: #ffffff;
+    --card-border: rgba(30,32,34,0.08);
+    --ink-primary: #1a1b1e;
+    --ink-secondary: #4a4b50;
+    --ink-muted: #84858a;
+    --accent: #2a6bac;
+    --accent-wash: rgba(42,107,172,0.08);
+    --accent-light: #d6e4f2;
+    --gridline: #e6e5e1;
+    --tag-manipulation: #2a78d6;
+    --tag-malfunction: #eb6834;
+    --tag-actuator: #1baf7a;
+    --tag-unknown: #898781;
+    --cat-rolling: #2a78d6;
+    --cat-roc: #1baf7a;
+    --cat-deviation: #e34948;
+    --cat-contradiction: #4a3aa7;
+    --cat-frozen: #eda100;
+    --cat-spike: #64b5cd;
+    --cat-constant: #e87ba4;
+    --cat-switching: #008300;
+    --cat-residual: #eb6834;
+    --cat-lowvar: #b3b3b3;
+    --cat-raw: #c98500;
+    --status-good: #0ca30c;
+    --status-critical: #d03b3b;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--surface);
+    color: var(--ink-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .report { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Header */
+  .header { margin-bottom: 48px; }
+  .header-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+  }
+  .header h1 {
+    font-size: 28px; font-weight: 700; line-height: 1.2;
+    text-wrap: balance; margin-bottom: 8px;
+  }
+  .header-sub { font-size: 14px; color: var(--ink-secondary); }
+
+  /* Stat tiles */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 40px;
+  }
+  .stat-tile {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-label {
+    font-size: 12px; font-weight: 500; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+  }
+  .stat-value { font-size: 32px; font-weight: 700; line-height: 1.1; }
+  .stat-detail { font-size: 12px; color: var(--ink-secondary); margin-top: 4px; }
+
+  /* Sections */
+  .section { margin-bottom: 48px; }
+  .section-title {
+    font-size: 18px; font-weight: 700; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--gridline);
+  }
+
+  /* Type distribution */
+  .type-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .type-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 16px;
+    box-shadow: var(--shadow-sm); display: flex; align-items: flex-start; gap: 12px;
+  }
+  .type-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 5px;
+  }
+  .type-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .type-count { font-size: 24px; font-weight: 700; }
+  .type-desc { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+
+  /* Stacked bar chart */
+  .chart-wrap {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 24px;
+    box-shadow: var(--shadow-sm); overflow-x: auto;
+  }
+  .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+  .chart-container { min-width: 900px; }
+  .chart-bars {
+    display: flex; align-items: flex-end; gap: 4px; height: 260px;
+    border-bottom: 1px solid var(--gridline);
+    padding-bottom: 0;
+  }
+  .chart-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; position: relative; }
+  .chart-seg { min-height: 0; transition: opacity 0.15s; }
+  .chart-seg:hover { opacity: 0.75; }
+  .chart-labels {
+    display: flex; gap: 4px; margin-top: 4px;
+  }
+  .chart-label {
+    flex: 1; font-size: 9px; color: var(--ink-muted);
+    text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .chart-legend {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-secondary); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Y-axis labels */
+  .chart-y-axis {
+    display: flex; flex-direction: column; justify-content: space-between;
+    height: 260px; padding-right: 8px; font-size: 10px; color: var(--ink-muted);
+    font-variant-numeric: tabular-nums; text-align: right; min-width: 30px;
+  }
+  .chart-area { display: flex; flex: 1; }
+
+  /* Attack cards */
+  .attack-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); margin-bottom: 8px;
+    box-shadow: var(--shadow-sm); overflow: hidden;
+  }
+  .attack-header {
+    padding: 14px 20px; cursor: pointer; display: flex;
+    align-items: center; gap: 12px; user-select: none;
+  }
+  .attack-header:hover { background: var(--accent-wash); }
+  .attack-id {
+    font-size: 14px; font-weight: 700; min-width: 36px;
+    font-variant-numeric: tabular-nums;
+  }
+  .attack-tag {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.5px;
+    text-transform: uppercase; padding: 2px 8px; border-radius: 3px;
+    color: #fff;
+  }
+  .attack-tag.manipulation { background: var(--tag-manipulation); }
+  .attack-tag.malfunction { background: var(--tag-malfunction); }
+  .attack-tag.actuator { background: var(--tag-actuator); }
+  .attack-tag.unknown { background: var(--tag-unknown); }
+  .attack-sensor { font-size: 13px; color: var(--ink-secondary); flex: 1; }
+  .attack-dur {
+    font-size: 12px; color: var(--ink-muted);
+    font-variant-numeric: tabular-nums; min-width: 60px; text-align: right;
+  }
+  .attack-detection { display: flex; gap: 4px; }
+  .det-badge {
+    font-size: 9px; font-weight: 600; padding: 1px 5px;
+    border-radius: 3px; letter-spacing: 0.3px;
+  }
+  .det-badge.caught { background: rgba(12,163,12,0.12); color: var(--status-good); }
+  .det-badge.missed { background: rgba(208,59,59,0.12); color: var(--status-critical); }
+  .attack-chevron {
+    width: 16px; height: 16px; color: var(--ink-muted);
+    transition: transform 0.2s; flex-shrink: 0;
+  }
+  .attack-card.open .attack-chevron { transform: rotate(90deg); }
+
+  .attack-body { display: none; padding: 0 20px 20px; }
+  .attack-card.open .attack-body { display: block; }
+
+  .evidence-box {
+    font-size: 13px; color: var(--ink-secondary);
+    background: var(--accent-wash); border-radius: 4px;
+    padding: 10px 14px; margin-bottom: 16px; line-height: 1.5;
+  }
+
+  .feat-table { width: 100%; margin-bottom: 16px; }
+  .feat-table th {
+    font-size: 10px; font-weight: 600; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--gridline);
+  }
+  .feat-table td {
+    font-size: 12px; padding: 5px 8px;
+    border-bottom: 1px solid var(--gridline);
+    font-variant-numeric: tabular-nums;
+  }
+  .feat-table tr:last-child td { border-bottom: none; }
+  .feat-name { font-weight: 500; font-family: ui-monospace, "Cascadia Code", "Menlo", monospace; font-size: 11px; }
+  .feat-bar-cell { width: 40%; }
+  .feat-bar-wrap {
+    background: var(--gridline); border-radius: 2px; height: 14px;
+    overflow: hidden; position: relative;
+  }
+  .feat-bar {
+    height: 100%; border-radius: 2px 0 0 2px; min-width: 1px;
+  }
+  .feat-pct { font-size: 11px; color: var(--ink-secondary); text-align: right; width: 50px; }
+
+  .cat-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+    margin-right: 4px; vertical-align: middle;
+  }
+
+  .detail-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .detail-col { flex: 1; min-width: 200px; }
+  .detail-label {
+    font-size: 10px; font-weight: 600; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .sensor-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500; padding: 3px 8px;
+    background: var(--accent-wash); border-radius: 3px; margin: 2px;
+  }
+  .sensor-chip .stage-num {
+    font-size: 9px; color: var(--ink-muted); font-weight: 600;
+  }
+
+  .cat-breakdown { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cat-pill {
+    font-size: 11px; padding: 2px 8px; border-radius: 3px;
+    display: flex; align-items: center; gap: 4px;
+    background: var(--surface); border: 1px solid var(--card-border);
+  }
+  .cat-pill-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* Conclusions */
+  .conclusion-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .conclusion-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);
+  }
+  .conclusion-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .conclusion-card p { font-size: 13px; color: var(--ink-secondary); line-height: 1.6; }
+  .conclusion-card ul { font-size: 13px; color: var(--ink-secondary); line-height: 1.8; padding-left: 16px; }
+
+  @media (max-width: 600px) {
+    .report { padding: 20px 16px 60px; }
+    .header h1 { font-size: 22px; }
+    .stat-value { font-size: 26px; }
+    .attack-header { flex-wrap: wrap; gap: 8px; }
+    .attack-sensor { min-width: 100%; order: 10; }
+  }
+</style>
+
+<div class="report">
+  <div class="header">
+    <div class="header-eyebrow">SWaT Anomaly Detection</div>
+    <h1>Explainability Report</h1>
+    <div class="header-sub">Feature attribution and attack classification for 35 attack windows using Autoencoder reconstruction error analysis. Model: OR Ensemble (SVM + Autoencoder), 349 features.</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-tile">
+      <div class="stat-label">Attack Windows</div>
+      <div class="stat-value">35</div>
+      <div class="stat-detail">32 detected, 3 missed</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">F1 Score (PA)</div>
+      <div class="stat-value">0.97</div>
+      <div class="stat-detail">Point-adjust evaluation</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">False Positive Rate</div>
+      <div class="stat-value">1.4%</div>
+      <div class="stat-detail">5,561 / 388,816 normal rows</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Total Features</div>
+      <div class="stat-value">349</div>
+      <div class="stat-detail">51 raw + 173 scaled + 125 physical</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Attack Type Distribution</div>
+    <div class="type-grid">
+      <div class="type-card">
+        <div class="type-dot" style="background:var(--tag-manipulation)"></div>
+        <div>
+          <div class="type-name">Sensor Manipulation</div>
+          <div class="type-count">13</div>
+          <div class="type-desc">Sensor readings altered — rolling/deviation features dominate</div>
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-dot" style="background:var(--tag-malfunction)"></div>
+        <div>
+          <div class="type-name">Sensor Malfunction</div>
+          <div class="type-count">12</div>
+          <div class="type-desc">Frozen sensors or abnormal spikes detected</div>
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-dot" style="background:var(--tag-actuator)"></div>
+        <div>
+          <div class="type-name">Actuator Control</div>
+          <div class="type-count">7</div>
+          <div class="type-desc">Physical contradictions — pump ON but no flow</div>
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-dot" style="background:var(--tag-unknown)"></div>
+        <div>
+          <div class="type-name">Unknown</div>
+          <div class="type-count">3</div>
+          <div class="type-desc">Low-variance dominant — no clear attack signature</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Feature Attribution per Attack Window</div>
+    <div class="chart-wrap">
+      <div class="chart-title">Contribution of each feature category to anomaly detection (% of reconstruction error)</div>
+      <div class="chart-container">
+        <div style="display:flex">
+          <div class="chart-y-axis">
+            <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+          </div>
+          <div style="flex:1">
+            <div class="chart-bars" id="chartBars"></div>
+            <div class="chart-labels" id="chartLabels"></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend" id="chartLegend"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Per-Attack Detailed Analysis</div>
+    <div id="attackCards"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Key Findings</div>
+    <div class="conclusion-grid">
+      <div class="conclusion-card">
+        <h3>Frozen sensors are the strongest signal</h3>
+        <p>Frozen detection (rolling std = 0) is the top feature category in 12 of 35 windows, reaching 99% dominance in P20 and P25 where LIT401 was completely stuck. This single feature type catches attacks that all other features miss.</p>
+      </div>
+      <div class="conclusion-card">
+        <h3>Physical contradictions catch actuator attacks</h3>
+        <p>The sustained contradiction feature (pump ON + no flow over 30s) is decisive for actuator-control attacks. In P13, MV301 contradiction accounts for 49% of total error — the model learned that valve state and flow must agree.</p>
+      </div>
+      <div class="conclusion-card">
+        <h3>Stage 5 is the most targeted</h3>
+        <p>Stage 5 (reverse osmosis) appears as the primary affected stage in 15 of 35 windows. Its many interconnected sensors (AIT501-504, FIT501-504, PIT501-503) create a rich signal for both direct manipulation and cascading effects.</p>
+      </div>
+      <div class="conclusion-card">
+        <h3>3 missed windows share a pattern</h3>
+        <p>P10, P11, and P23 are all missed by both models. They share subtle, distributed anomalies across many sensors without a single strong signal — the hardest type for reconstruction-based detection.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = [{"window":"P1","duration_sec":940,"attack_type":"actuator_control","description":"Actuator state changed, causing physical contradiction (e.g., pump ON but no flow)","evidence":"Physical contradiction detected: UV401_switch_30 (sensor UV401, stage 4). Actuator features account for 2% of total error.","top_features":[{"feature":"P501","category":"raw_sensor","sensor":"P501","stage":5,"importance_pct":9.1},{"feature":"UV401","category":"raw_sensor","sensor":"UV401","stage":4,"importance_pct":8.95},{"feature":"UV401_switch_30","category":"switching","sensor":"UV401","stage":4,"importance_pct":8.73},{"feature":"P501_switch_30","category":"switching","sensor":"P501","stage":5,"importance_pct":8.48},{"feature":"FIT504","category":"raw_sensor","sensor":"FIT504","stage":5,"importance_pct":3.22},{"feature":"P403_switch_30","category":"switching","sensor":"P403","stage":4,"importance_pct":3.06},{"feature":"P601_switch_30","category":"switching","sensor":"P601","stage":6,"importance_pct":2.8},{"feature":"P502_switch_30","category":"switching","sensor":"P502","stage":5,"importance_pct":2.8}],"category_breakdown":{"switching":48.6,"raw_sensor":25.4,"rate_of_change":7.3,"low_variance":6.2,"rolling":6.1,"spike_jump":2.4,"contradiction":1.6,"frozen":1,"deviation":0.9},"involved_sensors":[{"sensor":"P501","stage":5,"contribution_pct":18.4},{"sensor":"UV401","stage":4,"contribution_pct":17.7}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P2","duration_sec":443,"attack_type":"actuator_control","description":"Actuator state changed, causing physical contradiction (e.g., pump ON but no flow)","evidence":"Physical contradiction detected: P102_FIT101_contra_30 (sensor P102, stage 1). Actuator features account for 61% of total error.","top_features":[{"feature":"P102_FIT101_contra_30","category":"contradiction","sensor":"P102","stage":1,"importance_pct":30.76},{"feature":"P102_abnormal_duration","category":"constant_change","sensor":"P102","stage":1,"importance_pct":24.57},{"feature":"P102_switch_30","category":"switching","sensor":"P102","stage":1,"importance_pct":18.98},{"feature":"LIT301_frozen_raw","category":"frozen","sensor":"LIT301","stage":3,"importance_pct":9.29},{"feature":"P102_FIT101_contra_instant","category":"contradiction","sensor":"P102","stage":1,"importance_pct":4.37}],"category_breakdown":{"contradiction":35.5,"constant_change":25.8,"switching":20.4,"frozen":9.7,"rolling":2.6,"raw_sensor":2.3,"rate_of_change":1.2,"spike_jump":1,"low_variance":0.8},"involved_sensors":[{"sensor":"P102","stage":1,"contribution_pct":81.2},{"sensor":"LIT301","stage":3,"contribution_pct":9.5}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P3","duration_sec":383,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: LIT101_max_jump_10 (sensor LIT101, stage 1). Frozen=13%, spike=18% of total error.","top_features":[{"feature":"LIT101_max_jump_10","category":"spike_jump","sensor":"LIT101","stage":1,"importance_pct":14.35},{"feature":"LIT101_roc","category":"rate_of_change","sensor":"LIT101","stage":1,"importance_pct":14.09},{"feature":"MV101_switch_30","category":"switching","sensor":"MV101","stage":1,"importance_pct":3.24},{"feature":"FIT101_low_var_60","category":"low_variance","sensor":"FIT101","stage":1,"importance_pct":3.02},{"feature":"LIT101_low_var_60","category":"low_variance","sensor":"LIT101","stage":1,"importance_pct":2.56}],"category_breakdown":{"rolling":24.7,"rate_of_change":19.8,"spike_jump":18,"frozen":13.4,"low_variance":7.7,"raw_sensor":7,"switching":5.2,"deviation":2.5,"contradiction":0.8,"pair_residual":0.6},"involved_sensors":[{"sensor":"LIT101","stage":1,"contribution_pct":32.4},{"sensor":"FIT101","stage":1,"contribution_pct":7.6}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P4","duration_sec":390,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: FIT503_frozen_raw (sensor FIT503, stage 5). Frozen=35%, spike=6% of total error.","top_features":[{"feature":"AIT401_roc","category":"rate_of_change","sensor":"AIT401","stage":4,"importance_pct":14.41},{"feature":"PIT502_roc","category":"rate_of_change","sensor":"PIT502","stage":5,"importance_pct":4.52},{"feature":"AIT401_low_var_60","category":"low_variance","sensor":"AIT401","stage":4,"importance_pct":4.5},{"feature":"AIT401","category":"raw_sensor","sensor":"AIT401","stage":4,"importance_pct":3.71},{"feature":"FIT503_frozen_raw","category":"frozen","sensor":"FIT503","stage":5,"importance_pct":3.2}],"category_breakdown":{"frozen":34.7,"rate_of_change":24.8,"rolling":18.7,"spike_jump":6.5,"raw_sensor":6.5,"low_variance":5.8,"deviation":1.7,"pair_residual":0.9},"involved_sensors":[{"sensor":"AIT401","stage":4,"contribution_pct":35.5},{"sensor":"PIT502","stage":5,"contribution_pct":11.1}],"detection":{"svm":false,"ae":true,"ensemble":true}},{"window":"P5","duration_sec":196,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: AIT202_dev (sensor AIT202, stage 2). Deviation=28%, rolling=42% of total error.","top_features":[{"feature":"AIT202_dev","category":"deviation","sensor":"AIT202","stage":2,"importance_pct":28.13},{"feature":"AIT202_std_300","category":"rolling","sensor":"AIT202","stage":2,"importance_pct":25.51},{"feature":"AIT202_roc","category":"rate_of_change","sensor":"AIT202","stage":2,"importance_pct":14.08},{"feature":"AIT202","category":"raw_sensor","sensor":"AIT202","stage":2,"importance_pct":6.17},{"feature":"AIT202_mean_60","category":"rolling","sensor":"AIT202","stage":2,"importance_pct":5.64}],"category_breakdown":{"rolling":41.6,"deviation":28.4,"rate_of_change":14.8,"raw_sensor":7.5,"spike_jump":2.9,"low_variance":2.5,"switching":1.1,"frozen":0.6,"contradiction":0.5},"involved_sensors":[{"sensor":"AIT202","stage":2,"contribution_pct":91.2}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P6","duration_sec":429,"attack_type":"unknown","description":"Anomaly detected but no clear attack pattern identified","evidence":"Dominant feature category: low_variance (38%)","top_features":[{"feature":"LIT301_low_var_60","category":"low_variance","sensor":"LIT301","stage":3,"importance_pct":24.11},{"feature":"LIT301_frozen_raw","category":"frozen","sensor":"LIT301","stage":3,"importance_pct":10.24},{"feature":"LIT101_low_var_60","category":"low_variance","sensor":"LIT101","stage":1,"importance_pct":7.32},{"feature":"AIT202_std_300","category":"rolling","sensor":"AIT202","stage":2,"importance_pct":4.51},{"feature":"LIT301_roc","category":"rate_of_change","sensor":"LIT301","stage":3,"importance_pct":3.99}],"category_breakdown":{"low_variance":37.6,"rolling":20,"frozen":12.1,"spike_jump":8.3,"rate_of_change":8,"switching":5.3,"constant_change":3.6,"raw_sensor":2.3,"deviation":1.4,"contradiction":0.8},"involved_sensors":[{"sensor":"LIT301","stage":3,"contribution_pct":44},{"sensor":"LIT101","stage":1,"contribution_pct":8.3}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P7","duration_sec":964,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: DPIT301_mean_60 (sensor DPIT301, stage 3). Deviation=9%, rolling=40% of total error.","top_features":[{"feature":"DPIT301","category":"raw_sensor","sensor":"DPIT301","stage":3,"importance_pct":7.82},{"feature":"DPIT301_mean_60","category":"rolling","sensor":"DPIT301","stage":3,"importance_pct":7.78},{"feature":"DPIT301_mean_120","category":"rolling","sensor":"DPIT301","stage":3,"importance_pct":7.15},{"feature":"DPIT301_dev","category":"deviation","sensor":"DPIT301","stage":3,"importance_pct":7.07},{"feature":"DPIT301_mean_300","category":"rolling","sensor":"DPIT301","stage":3,"importance_pct":5.42}],"category_breakdown":{"rolling":40.2,"raw_sensor":14.6,"deviation":8.7,"spike_jump":8.5,"rate_of_change":8.3,"frozen":5.9,"switching":5.9,"low_variance":4.6,"contradiction":2.6,"pair_residual":0.5},"involved_sensors":[{"sensor":"DPIT301","stage":3,"contribution_pct":53.1}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P8","duration_sec":721,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: FIT501_dev (sensor FIT501, stage 5). Deviation=11%, rolling=36% of total error.","top_features":[{"feature":"P501_switch_30","category":"switching","sensor":"P501","stage":5,"importance_pct":3.47},{"feature":"UV401_switch_30","category":"switching","sensor":"UV401","stage":4,"importance_pct":3.35},{"feature":"P402_switch_30","category":"switching","sensor":"P402","stage":4,"importance_pct":3.21},{"feature":"FIT501_dev","category":"deviation","sensor":"FIT501","stage":5,"importance_pct":2.96},{"feature":"FIT501","category":"raw_sensor","sensor":"FIT501","stage":5,"importance_pct":2.81}],"category_breakdown":{"rolling":35.8,"raw_sensor":14,"switching":11.5,"deviation":10.7,"rate_of_change":8.5,"low_variance":6.9,"spike_jump":6.8,"pair_residual":2.7,"contradiction":1.6,"frozen":1.4},"involved_sensors":[{"sensor":"FIT501","stage":5,"contribution_pct":15.8},{"sensor":"PIT501","stage":5,"contribution_pct":13.6}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P9","duration_sec":721,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: FIT601_frozen_raw (sensor FIT601, stage 6). Frozen=54%, spike=6% of total error.","top_features":[{"feature":"FIT601_frozen_raw","category":"frozen","sensor":"FIT601","stage":6,"importance_pct":5.21},{"feature":"FIT501_frozen_raw","category":"frozen","sensor":"FIT501","stage":5,"importance_pct":4.2},{"feature":"FIT401_frozen_raw","category":"frozen","sensor":"FIT401","stage":4,"importance_pct":3.82},{"feature":"AIT401_roc","category":"rate_of_change","sensor":"AIT401","stage":4,"importance_pct":3.79},{"feature":"PIT502_roc","category":"rate_of_change","sensor":"PIT502","stage":5,"importance_pct":3.66}],"category_breakdown":{"frozen":53.5,"rate_of_change":16.5,"rolling":8.7,"pair_residual":5.9,"spike_jump":5.7,"low_variance":4.5,"raw_sensor":3.3,"deviation":1.5},"involved_sensors":[{"sensor":"AIT401","stage":4,"contribution_pct":10.5},{"sensor":"PIT502","stage":5,"contribution_pct":9.6}],"detection":{"svm":false,"ae":true,"ensemble":true}},{"window":"P10","duration_sec":233,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: PIT502_max_jump_10 (sensor PIT502, stage 5). Frozen=37%, spike=8% of total error.","top_features":[{"feature":"AIT503_roc","category":"rate_of_change","sensor":"AIT503","stage":5,"importance_pct":8.73},{"feature":"PIT502_roc","category":"rate_of_change","sensor":"PIT502","stage":5,"importance_pct":5.48},{"feature":"PIT502_max_jump_10","category":"spike_jump","sensor":"PIT502","stage":5,"importance_pct":4.11},{"feature":"AIT503_low_var_60","category":"low_variance","sensor":"AIT503","stage":5,"importance_pct":3.61},{"feature":"PIT502_std_60","category":"rolling","sensor":"PIT502","stage":5,"importance_pct":3.17}],"category_breakdown":{"frozen":37,"rate_of_change":21.2,"rolling":17.5,"spike_jump":8.1,"low_variance":7.9,"switching":2.9,"raw_sensor":2.3,"pair_residual":1.7,"deviation":1},"involved_sensors":[{"sensor":"PIT502","stage":5,"contribution_pct":22.6},{"sensor":"AIT503","stage":5,"contribution_pct":17.3}],"detection":{"svm":false,"ae":false,"ensemble":false}},{"window":"P11","duration_sec":431,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: PIT501_frozen_raw (sensor PIT501, stage 5). Frozen=36%, spike=6% of total error.","top_features":[{"feature":"PIT501_frozen_raw","category":"frozen","sensor":"PIT501","stage":5,"importance_pct":3.27},{"feature":"FIT201_roc","category":"rate_of_change","sensor":"FIT201","stage":2,"importance_pct":3.04},{"feature":"PIT503_frozen_raw","category":"frozen","sensor":"PIT503","stage":5,"importance_pct":2.77},{"feature":"AIT202_frozen_raw","category":"frozen","sensor":"AIT202","stage":2,"importance_pct":2.6},{"feature":"AIT502_frozen_raw","category":"frozen","sensor":"AIT502","stage":5,"importance_pct":2.41}],"category_breakdown":{"frozen":35.8,"rolling":23.4,"rate_of_change":14,"spike_jump":6.4,"raw_sensor":5.7,"switching":5.1,"deviation":3.4,"low_variance":3.4,"pair_residual":1.6,"contradiction":0.8},"involved_sensors":[{"sensor":"PIT502","stage":5,"contribution_pct":12.3},{"sensor":"FIT201","stage":2,"contribution_pct":8.1}],"detection":{"svm":false,"ae":false,"ensemble":false}},{"window":"P12","duration_sec":276,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Dominant feature category: rate_of_change (41%)","top_features":[{"feature":"LIT301_roc","category":"rate_of_change","sensor":"LIT301","stage":3,"importance_pct":38.2},{"feature":"LIT301_max_jump_10","category":"spike_jump","sensor":"LIT301","stage":3,"importance_pct":19.33},{"feature":"LIT301_low_var_60","category":"low_variance","sensor":"LIT301","stage":3,"importance_pct":6.37},{"feature":"LIT101_low_var_60","category":"low_variance","sensor":"LIT101","stage":1,"importance_pct":2.41}],"category_breakdown":{"rate_of_change":41.1,"spike_jump":23.2,"rolling":10.6,"low_variance":10.3,"frozen":6.6,"raw_sensor":2.6,"switching":2.2,"pair_residual":2.2,"deviation":0.7},"involved_sensors":[{"sensor":"LIT301","stage":3,"contribution_pct":67.4}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P13","duration_sec":717,"attack_type":"actuator_control","description":"Actuator state changed, causing physical contradiction (e.g., pump ON but no flow)","evidence":"Physical contradiction detected: MV301_FIT301_contra_30 (sensor MV301, stage 3). Actuator features account for 49% of total error.","top_features":[{"feature":"MV301_FIT301_contra_30","category":"contradiction","sensor":"MV301","stage":3,"importance_pct":29.36},{"feature":"MV301_FIT301_contra_instant","category":"contradiction","sensor":"MV301","stage":3,"importance_pct":18.18},{"feature":"MV301","category":"raw_sensor","sensor":"MV301","stage":3,"importance_pct":9.96},{"feature":"P602_FIT601_contra_instant","category":"contradiction","sensor":"P602","stage":6,"importance_pct":1.18}],"category_breakdown":{"contradiction":49.1,"rolling":17.1,"raw_sensor":15.4,"frozen":5.4,"deviation":4.1,"rate_of_change":2.5,"low_variance":2.3,"switching":2.2,"spike_jump":1.5},"involved_sensors":[{"sensor":"MV301","stage":3,"contribution_pct":58}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P14","duration_sec":259,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Dominant feature category: rolling (25%)","top_features":[{"feature":"P602_FIT601_contra_instant","category":"contradiction","sensor":"P602","stage":6,"importance_pct":4.65},{"feature":"FIT601_roc","category":"rate_of_change","sensor":"FIT601","stage":6,"importance_pct":2.89},{"feature":"FIT601_frozen_raw","category":"frozen","sensor":"FIT601","stage":6,"importance_pct":2.45},{"feature":"MV301","category":"raw_sensor","sensor":"MV301","stage":3,"importance_pct":2.11}],"category_breakdown":{"rolling":25,"frozen":19.7,"raw_sensor":13.5,"rate_of_change":9.6,"contradiction":9.2,"switching":8.1,"spike_jump":6.3,"deviation":4.2,"low_variance":3.5,"pair_residual":0.6},"involved_sensors":[{"sensor":"PIT502","stage":5,"contribution_pct":10.7},{"sensor":"FIT601","stage":6,"contribution_pct":10.4}],"detection":{"svm":false,"ae":true,"ensemble":true}},{"window":"P15","duration_sec":395,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: AIT504_mean_300 (sensor AIT504, stage 5). Deviation=11%, rolling=70% of total error.","top_features":[{"feature":"AIT504_mean_300","category":"rolling","sensor":"AIT504","stage":5,"importance_pct":25.51},{"feature":"AIT504_mean_120","category":"rolling","sensor":"AIT504","stage":5,"importance_pct":21.96},{"feature":"AIT504_mean_60","category":"rolling","sensor":"AIT504","stage":5,"importance_pct":16.16},{"feature":"AIT504_dev","category":"deviation","sensor":"AIT504","stage":5,"importance_pct":11},{"feature":"AIT504","category":"raw_sensor","sensor":"AIT504","stage":5,"importance_pct":10.25}],"category_breakdown":{"rolling":70.3,"deviation":11.1,"raw_sensor":10.5,"low_variance":3.8,"rate_of_change":1.8,"spike_jump":1.7},"involved_sensors":[{"sensor":"AIT504","stage":5,"contribution_pct":96.4}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P16","duration_sec":721,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: LIT101_frozen_raw (sensor LIT101, stage 1). Frozen=48%, spike=2% of total error.","top_features":[{"feature":"LIT101_frozen_raw","category":"frozen","sensor":"LIT101","stage":1,"importance_pct":42.92},{"feature":"LIT101_low_var_60","category":"low_variance","sensor":"LIT101","stage":1,"importance_pct":12.45},{"feature":"LIT301_low_var_60","category":"low_variance","sensor":"LIT301","stage":3,"importance_pct":10},{"feature":"P102_abnormal_duration","category":"constant_change","sensor":"P102","stage":1,"importance_pct":2.62}],"category_breakdown":{"frozen":47.8,"low_variance":26,"rolling":11,"raw_sensor":4.5,"constant_change":2.6,"rate_of_change":2.3,"spike_jump":2.2,"switching":1.9,"deviation":1.2},"involved_sensors":[{"sensor":"LIT101","stage":1,"contribution_pct":58.2},{"sensor":"LIT301","stage":3,"contribution_pct":11.7}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P17","duration_sec":463,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: FIT504_mean_300 (sensor FIT504, stage 5). Deviation=13%, rolling=35% of total error.","top_features":[{"feature":"FIT504_mean_300","category":"rolling","sensor":"FIT504","stage":5,"importance_pct":3.96},{"feature":"P501_switch_30","category":"switching","sensor":"P501","stage":5,"importance_pct":3.53},{"feature":"UV401_switch_30","category":"switching","sensor":"UV401","stage":4,"importance_pct":3.47},{"feature":"FIT501_dev","category":"deviation","sensor":"FIT501","stage":5,"importance_pct":3.18}],"category_breakdown":{"rolling":35.4,"raw_sensor":13.8,"deviation":13.1,"switching":11.4,"rate_of_change":7.6,"spike_jump":6.5,"low_variance":6.2,"pair_residual":2.7,"frozen":1.7,"contradiction":1.6},"involved_sensors":[{"sensor":"FIT501","stage":5,"contribution_pct":14.6},{"sensor":"PIT501","stage":5,"contribution_pct":12.4}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P18","duration_sec":697,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: DPIT301_roc (sensor DPIT301, stage 3). Deviation=7%, rolling=39% of total error.","top_features":[{"feature":"DPIT301_max_jump_10","category":"spike_jump","sensor":"DPIT301","stage":3,"importance_pct":12.61},{"feature":"DPIT301_roc","category":"rate_of_change","sensor":"DPIT301","stage":3,"importance_pct":12.04},{"feature":"DPIT301_mean_60","category":"rolling","sensor":"DPIT301","stage":3,"importance_pct":9.07},{"feature":"DPIT301","category":"raw_sensor","sensor":"DPIT301","stage":3,"importance_pct":8.81}],"category_breakdown":{"rolling":38.9,"spike_jump":16.3,"rate_of_change":13.9,"raw_sensor":13.1,"deviation":7.3,"frozen":5.3,"low_variance":2.4,"switching":1.5,"contradiction":0.9},"involved_sensors":[{"sensor":"DPIT301","stage":3,"contribution_pct":69}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P19","duration_sec":321,"attack_type":"actuator_control","description":"Actuator state changed, causing physical contradiction (e.g., pump ON but no flow)","evidence":"Physical contradiction detected: P601_switch_30 (sensor P601, stage 6). Actuator features account for 4% of total error.","top_features":[{"feature":"P601_switch_30","category":"switching","sensor":"P601","stage":6,"importance_pct":9.57},{"feature":"P502_switch_30","category":"switching","sensor":"P502","stage":5,"importance_pct":9.57},{"feature":"P603_switch_30","category":"switching","sensor":"P603","stage":6,"importance_pct":9.57},{"feature":"P202_switch_30","category":"switching","sensor":"P202","stage":2,"importance_pct":9.57},{"feature":"P401_switch_30","category":"switching","sensor":"P401","stage":4,"importance_pct":9.57}],"category_breakdown":{"switching":84.6,"low_variance":5,"constant_change":3.8,"raw_sensor":3.2,"rolling":1.3,"rate_of_change":0.9,"spike_jump":0.6},"involved_sensors":[{"sensor":"P601","stage":6,"contribution_pct":9.6},{"sensor":"P502","stage":5,"contribution_pct":9.6},{"sensor":"P202","stage":2,"contribution_pct":9.6}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P20","duration_sec":612,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: LIT401_frozen_raw (sensor LIT401, stage 4). Frozen=99%, spike=0% of total error.","top_features":[{"feature":"LIT401_frozen_raw","category":"frozen","sensor":"LIT401","stage":4,"importance_pct":99.08}],"category_breakdown":{"frozen":99.1},"involved_sensors":[{"sensor":"LIT401","stage":4,"contribution_pct":99.7}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P21","duration_sec":1445,"attack_type":"actuator_control","description":"Actuator state changed, causing physical contradiction (e.g., pump ON but no flow)","evidence":"Physical contradiction detected: P102_switch_30 (sensor P102, stage 1). Actuator features account for 21% of total error.","top_features":[{"feature":"P102_switch_30","category":"switching","sensor":"P102","stage":1,"importance_pct":41.56},{"feature":"LIT301_frozen_raw","category":"frozen","sensor":"LIT301","stage":3,"importance_pct":9.53},{"feature":"P102_abnormal_duration","category":"constant_change","sensor":"P102","stage":1,"importance_pct":7.26},{"feature":"P102_FIT101_contra_30","category":"contradiction","sensor":"P102","stage":1,"importance_pct":6.56},{"feature":"P102_not_normal","category":"constant_change","sensor":"P102","stage":1,"importance_pct":4.06}],"category_breakdown":{"switching":45.8,"constant_change":11.3,"frozen":10.1,"contradiction":9.6,"rolling":7.8,"raw_sensor":5.9,"spike_jump":3.3,"low_variance":2.8,"rate_of_change":2.6,"deviation":0.7},"involved_sensors":[{"sensor":"P102","stage":1,"contribution_pct":65.3},{"sensor":"LIT301","stage":3,"contribution_pct":10.3}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P22","duration_sec":35900,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: FIT503_dev (sensor FIT503, stage 5). Deviation=10%, rolling=31% of total error.","top_features":[{"feature":"P501_switch_30","category":"switching","sensor":"P501","stage":5,"importance_pct":3.04},{"feature":"UV401_switch_30","category":"switching","sensor":"UV401","stage":4,"importance_pct":2.89},{"feature":"FIT503_dev","category":"deviation","sensor":"FIT503","stage":5,"importance_pct":2.68},{"feature":"FIT503","category":"raw_sensor","sensor":"FIT503","stage":5,"importance_pct":2.48}],"category_breakdown":{"rolling":30.6,"raw_sensor":17.6,"low_variance":11.8,"deviation":10.1,"switching":9.3,"rate_of_change":8.6,"spike_jump":7.5,"pair_residual":2.3,"contradiction":1.1,"frozen":1},"involved_sensors":[{"sensor":"FIT501","stage":5,"contribution_pct":14.6},{"sensor":"PIT501","stage":5,"contribution_pct":13.4}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P23","duration_sec":121,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: AIT201_frozen_raw (sensor AIT201, stage 2). Frozen=34%, spike=4% of total error.","top_features":[{"feature":"AIT501_dev","category":"deviation","sensor":"AIT501","stage":5,"importance_pct":4.16},{"feature":"AIT501","category":"raw_sensor","sensor":"AIT501","stage":5,"importance_pct":3.75},{"feature":"AIT501_mean_120","category":"rolling","sensor":"AIT501","stage":5,"importance_pct":3.75},{"feature":"AIT501_mean_300","category":"rolling","sensor":"AIT501","stage":5,"importance_pct":3.73},{"feature":"AIT201_frozen_raw","category":"frozen","sensor":"AIT201","stage":2,"importance_pct":3.42}],"category_breakdown":{"frozen":34.3,"rolling":33.1,"rate_of_change":8.7,"raw_sensor":7.3,"deviation":6.2,"spike_jump":4.1,"pair_residual":2.1,"low_variance":2,"switching":1.7,"contradiction":0.6},"involved_sensors":[{"sensor":"AIT501","stage":5,"contribution_pct":22.9},{"sensor":"AIT203","stage":2,"contribution_pct":7.5}],"detection":{"svm":false,"ae":false,"ensemble":false}},{"window":"P24","duration_sec":1171,"attack_type":"actuator_control","description":"Actuator state changed, causing physical contradiction (e.g., pump ON but no flow)","evidence":"Physical contradiction detected: P102_FIT101_contra_30 (sensor P102, stage 1). Actuator features account for 41% of total error.","top_features":[{"feature":"P102_FIT101_contra_30","category":"contradiction","sensor":"P102","stage":1,"importance_pct":22.05},{"feature":"P102_switch_30","category":"switching","sensor":"P102","stage":1,"importance_pct":21.36},{"feature":"P102_abnormal_duration","category":"constant_change","sensor":"P102","stage":1,"importance_pct":15.71},{"feature":"LIT301_frozen_raw","category":"frozen","sensor":"LIT301","stage":3,"importance_pct":14.66},{"feature":"LIT101_frozen_raw","category":"frozen","sensor":"LIT101","stage":1,"importance_pct":13.67}],"category_breakdown":{"frozen":28.6,"contradiction":24.4,"switching":22.8,"constant_change":16.8,"rolling":1.7,"raw_sensor":1.7,"spike_jump":1.6,"rate_of_change":1.5,"low_variance":0.8},"involved_sensors":[{"sensor":"P102","stage":1,"contribution_pct":63.5},{"sensor":"LIT301","stage":3,"contribution_pct":14.9}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P25","duration_sec":367,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: LIT401_frozen_raw (sensor LIT401, stage 4). Frozen=99% of total error.","top_features":[{"feature":"LIT401_frozen_raw","category":"frozen","sensor":"LIT401","stage":4,"importance_pct":98.75}],"category_breakdown":{"frozen":98.8},"involved_sensors":[{"sensor":"LIT401","stage":4,"contribution_pct":99.6}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P26","duration_sec":601,"attack_type":"unknown","description":"Anomaly detected but no clear attack pattern identified","evidence":"Dominant feature category: low_variance (45%)","top_features":[{"feature":"LIT301_low_var_60","category":"low_variance","sensor":"LIT301","stage":3,"importance_pct":28.73},{"feature":"LIT301_frozen_raw","category":"frozen","sensor":"LIT301","stage":3,"importance_pct":9.69},{"feature":"LIT101_low_var_60","category":"low_variance","sensor":"LIT101","stage":1,"importance_pct":8.53},{"feature":"AIT202_std_300","category":"rolling","sensor":"AIT202","stage":2,"importance_pct":5.09}],"category_breakdown":{"low_variance":44.5,"rolling":20.5,"frozen":11.8,"switching":7.6,"rate_of_change":5.1,"spike_jump":4.4,"constant_change":2.9,"raw_sensor":1.5,"contradiction":0.8,"deviation":0.7},"involved_sensors":[{"sensor":"LIT301","stage":3,"contribution_pct":44.4},{"sensor":"FIT201","stage":2,"contribution_pct":10}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P27","duration_sec":444,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: LIT101_frozen_raw (sensor LIT101, stage 1). Frozen=43%, spike=4% of total error.","top_features":[{"feature":"LIT101_frozen_raw","category":"frozen","sensor":"LIT101","stage":1,"importance_pct":40.27},{"feature":"LIT301_low_var_60","category":"low_variance","sensor":"LIT301","stage":3,"importance_pct":9.8},{"feature":"LIT101_low_var_60","category":"low_variance","sensor":"LIT101","stage":1,"importance_pct":6.91},{"feature":"LIT101_roc","category":"rate_of_change","sensor":"LIT101","stage":1,"importance_pct":2.94}],"category_breakdown":{"frozen":42.9,"low_variance":22.4,"rolling":12.1,"raw_sensor":5.6,"rate_of_change":5.2,"spike_jump":3.6,"switching":3.1,"contradiction":2.9,"deviation":1.6},"involved_sensors":[{"sensor":"LIT101","stage":1,"contribution_pct":52.4},{"sensor":"LIT301","stage":3,"contribution_pct":11.5}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P28","duration_sec":101,"attack_type":"actuator_control","description":"Actuator state changed, causing physical contradiction (e.g., pump ON but no flow)","evidence":"Physical contradiction detected: P102_switch_30 (sensor P102, stage 1). Actuator features account for 35% of total error.","top_features":[{"feature":"P102_switch_30","category":"switching","sensor":"P102","stage":1,"importance_pct":29.91},{"feature":"P102_abnormal_duration","category":"constant_change","sensor":"P102","stage":1,"importance_pct":21.91},{"feature":"P102_FIT101_contra_instant","category":"contradiction","sensor":"P102","stage":1,"importance_pct":9.97},{"feature":"P102_not_normal","category":"constant_change","sensor":"P102","stage":1,"importance_pct":1.89}],"category_breakdown":{"switching":34.2,"constant_change":23.8,"contradiction":11.4,"rolling":7.2,"spike_jump":7,"rate_of_change":4.5,"frozen":4,"raw_sensor":3.4,"low_variance":2.7,"deviation":1.4},"involved_sensors":[{"sensor":"P102","stage":1,"contribution_pct":66.4}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P29","duration_sec":481,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: AIT503_mean_60 (sensor AIT503, stage 5). Deviation=1%, rolling=37% of total error.","top_features":[{"feature":"MV201","category":"raw_sensor","sensor":"MV201","stage":2,"importance_pct":4.22},{"feature":"FIT101_LIT301_residual","category":"pair_residual","sensor":"FIT101","stage":1,"importance_pct":3.84},{"feature":"AIT503_mean_60","category":"rolling","sensor":"AIT503","stage":5,"importance_pct":3.25},{"feature":"AIT503_mean_120","category":"rolling","sensor":"AIT503","stage":5,"importance_pct":3.24}],"category_breakdown":{"rolling":36.6,"frozen":15.5,"raw_sensor":13.3,"switching":8.4,"rate_of_change":8.4,"low_variance":7.1,"pair_residual":4.2,"spike_jump":4.2,"deviation":1.4,"contradiction":0.6},"involved_sensors":[{"sensor":"AIT503","stage":5,"contribution_pct":17.1},{"sensor":"AIT203","stage":2,"contribution_pct":10.6}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P30","duration_sec":540,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: LIT101_frozen_raw (sensor LIT101, stage 1). Frozen=22%, spike=10% of total error.","top_features":[{"feature":"LIT101_frozen_raw","category":"frozen","sensor":"LIT101","stage":1,"importance_pct":16.26},{"feature":"LIT101_roc","category":"rate_of_change","sensor":"LIT101","stage":1,"importance_pct":15.86},{"feature":"LIT101_low_var_60","category":"low_variance","sensor":"LIT101","stage":1,"importance_pct":9.92},{"feature":"LIT101_max_jump_10","category":"spike_jump","sensor":"LIT101","stage":1,"importance_pct":6.37}],"category_breakdown":{"frozen":21.9,"rolling":20.1,"rate_of_change":19.1,"low_variance":17.1,"spike_jump":9.9,"raw_sensor":4.7,"switching":4.2,"deviation":0.9,"constant_change":0.9,"pair_residual":0.6,"contradiction":0.6},"involved_sensors":[{"sensor":"LIT101","stage":1,"contribution_pct":55.9}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P31","duration_sec":469,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: FIT502_mean_60 (sensor FIT502, stage 5). Deviation=12%, rolling=35% of total error.","top_features":[{"feature":"FIT502_mean_60","category":"rolling","sensor":"FIT502","stage":5,"importance_pct":2.99},{"feature":"FIT501_dev","category":"deviation","sensor":"FIT501","stage":5,"importance_pct":2.88},{"feature":"P501_switch_30","category":"switching","sensor":"P501","stage":5,"importance_pct":2.5}],"category_breakdown":{"rolling":34.9,"raw_sensor":17.2,"deviation":12.1,"switching":8.5,"low_variance":8.2,"rate_of_change":6.7,"spike_jump":6,"pair_residual":4.1,"contradiction":1.4,"frozen":0.8},"involved_sensors":[{"sensor":"FIT501","stage":5,"contribution_pct":14.3},{"sensor":"PIT503","stage":5,"contribution_pct":12.3}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P32","duration_sec":281,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: AIT502_std_60 (sensor AIT502, stage 5). Deviation=7%, rolling=39% of total error.","top_features":[{"feature":"AIT502_low_var_60","category":"low_variance","sensor":"AIT502","stage":5,"importance_pct":8.12},{"feature":"AIT502_std_60","category":"rolling","sensor":"AIT502","stage":5,"importance_pct":8.11},{"feature":"FIT401_low_var_60","category":"low_variance","sensor":"FIT401","stage":4,"importance_pct":6.21},{"feature":"FIT401_std_60","category":"rolling","sensor":"FIT401","stage":4,"importance_pct":6.21}],"category_breakdown":{"rolling":38.7,"low_variance":26.5,"spike_jump":11.8,"deviation":7.2,"raw_sensor":6.4,"pair_residual":6.3,"switching":1.3,"rate_of_change":0.8,"frozen":0.6},"involved_sensors":[{"sensor":"AIT502","stage":5,"contribution_pct":30.1},{"sensor":"AIT402","stage":4,"contribution_pct":22.5}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P33","duration_sec":401,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: FIT401_mean_300 (sensor FIT401, stage 4). Deviation=12%, rolling=70% of total error.","top_features":[{"feature":"FIT401_mean_300","category":"rolling","sensor":"FIT401","stage":4,"importance_pct":22.87},{"feature":"FIT401_mean_120","category":"rolling","sensor":"FIT401","stage":4,"importance_pct":21.91},{"feature":"FIT401_mean_60","category":"rolling","sensor":"FIT401","stage":4,"importance_pct":18.43},{"feature":"FIT401","category":"raw_sensor","sensor":"FIT401","stage":4,"importance_pct":13.53},{"feature":"FIT401_dev","category":"deviation","sensor":"FIT401","stage":4,"importance_pct":11.44}],"category_breakdown":{"rolling":70,"raw_sensor":13.9,"deviation":11.6,"spike_jump":1.4,"low_variance":1.2,"rate_of_change":1.2},"involved_sensors":[{"sensor":"FIT401","stage":4,"contribution_pct":96.3}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P34","duration_sec":297,"attack_type":"sensor_manipulation","description":"Continuous sensor readings deviate from normal without corresponding actuator changes","evidence":"Sensor manipulation: FIT501_dev (sensor FIT501, stage 5). Deviation=12%, rolling=33% of total error.","top_features":[{"feature":"FIT501_dev","category":"deviation","sensor":"FIT501","stage":5,"importance_pct":3.32},{"feature":"P501_switch_30","category":"switching","sensor":"P501","stage":5,"importance_pct":3.1},{"feature":"FIT501","category":"raw_sensor","sensor":"FIT501","stage":5,"importance_pct":3.09}],"category_breakdown":{"rolling":32.7,"raw_sensor":15.6,"deviation":12.4,"switching":9.8,"rate_of_change":7.9,"spike_jump":7.5,"low_variance":7.1,"pair_residual":3.8,"frozen":1.8,"contradiction":1.3},"involved_sensors":[{"sensor":"FIT501","stage":5,"contribution_pct":16},{"sensor":"PIT501","stage":5,"contribution_pct":13.8}],"detection":{"svm":true,"ae":true,"ensemble":true}},{"window":"P35","duration_sec":1690,"attack_type":"sensor_malfunction","description":"Sensor is frozen or producing abnormal spikes/noise","evidence":"Sensor malfunction: LIT301_frozen_raw (sensor LIT301, stage 3). Frozen=30%, spike=2% of total error.","top_features":[{"feature":"LIT301_frozen_raw","category":"frozen","sensor":"LIT301","stage":3,"importance_pct":26.45},{"feature":"LIT301_low_var_60","category":"low_variance","sensor":"LIT301","stage":3,"importance_pct":13.55},{"feature":"FIT101_LIT301_residual","category":"pair_residual","sensor":"FIT101","stage":1,"importance_pct":7.02},{"feature":"LIT301","category":"raw_sensor","sensor":"LIT301","stage":3,"importance_pct":4.95}],"category_breakdown":{"frozen":29.7,"rolling":22.3,"low_variance":20.8,"pair_residual":7.2,"raw_sensor":7.1,"switching":6.3,"rate_of_change":2.4,"spike_jump":1.8,"deviation":1,"contradiction":0.7,"constant_change":0.7},"involved_sensors":[{"sensor":"LIT301","stage":3,"contribution_pct":56.1}],"detection":{"svm":true,"ae":true,"ensemble":true}}];
+
+const CAT_COLORS = {
+  rolling:'var(--cat-rolling)', rate_of_change:'var(--cat-roc)', deviation:'var(--cat-deviation)',
+  contradiction:'var(--cat-contradiction)', frozen:'var(--cat-frozen)', spike_jump:'var(--cat-spike)',
+  constant_change:'var(--cat-constant)', switching:'var(--cat-switching)',
+  pair_residual:'var(--cat-residual)', low_variance:'var(--cat-lowvar)', raw_sensor:'var(--cat-raw)'
+};
+const CAT_LABELS = {
+  rolling:'Rolling (mean/std)', rate_of_change:'Rate of Change', deviation:'Deviation',
+  contradiction:'Contradiction', frozen:'Frozen', spike_jump:'Spike / Jump',
+  constant_change:'Constant Change', switching:'Switching Rate',
+  pair_residual:'Pair Residual', low_variance:'Low Variance', raw_sensor:'Raw Sensor'
+};
+const CATS = ['rolling','rate_of_change','deviation','contradiction','frozen','spike_jump','constant_change','switching','pair_residual','low_variance','raw_sensor'];
+
+// Build stacked bar chart
+const barsEl = document.getElementById('chartBars');
+const labelsEl = document.getElementById('chartLabels');
+const legendEl = document.getElementById('chartLegend');
+
+DATA.forEach(d => {
+  const col = document.createElement('div');
+  col.className = 'chart-col';
+  col.title = d.window;
+  let total = 0;
+  CATS.forEach(c => { total += (d.category_breakdown[c]||0); });
+  CATS.slice().reverse().forEach(c => {
+    const pct = d.category_breakdown[c]||0;
+    if (pct < 0.3) return;
+    const seg = document.createElement('div');
+    seg.className = 'chart-seg';
+    seg.style.height = (pct / Math.max(total,100) * 100) + '%';
+    seg.style.background = CAT_COLORS[c];
+    seg.title = `${d.window}: ${CAT_LABELS[c]} ${Math.round(pct)}%`;
+    col.appendChild(seg);
+  });
+  barsEl.appendChild(col);
+  const lbl = document.createElement('div');
+  lbl.className = 'chart-label';
+  lbl.textContent = d.window;
+  labelsEl.appendChild(lbl);
+});
+
+CATS.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-swatch" style="background:${CAT_COLORS[c]}"></div>${CAT_LABELS[c]}`;
+  legendEl.appendChild(item);
+});
+
+// Build attack cards
+const cardsEl = document.getElementById('attackCards');
+const TYPE_CLASS = {sensor_manipulation:'manipulation',sensor_malfunction:'malfunction',actuator_control:'actuator',unknown:'unknown'};
+const TYPE_LABEL = {sensor_manipulation:'Sensor Manipulation',sensor_malfunction:'Sensor Malfunction',actuator_control:'Actuator Control',unknown:'Unknown'};
+
+function formatDur(s) {
+  if (s >= 3600) return (s/3600).toFixed(1)+'h';
+  if (s >= 60) return Math.round(s/60)+'m '+s%60+'s';
+  return s+'s';
+}
+
+DATA.forEach(d => {
+  const card = document.createElement('div');
+  card.className = 'attack-card';
+
+  const det = d.detection;
+  const detHtml = ['svm','ae','ensemble'].map(m => {
+    const label = m === 'ae' ? 'AE' : m === 'svm' ? 'SVM' : 'ENS';
+    const cls = det[m] ? 'caught' : 'missed';
+    const txt = det[m] ? '✓' : '✗';
+    return `<span class="det-badge ${cls}">${label} ${txt}</span>`;
+  }).join('');
+
+  const topSensor = d.involved_sensors.length ? d.involved_sensors[0].sensor : '—';
+
+  card.innerHTML = `
+    <div class="attack-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="attack-id">${d.window}</span>
+      <span class="attack-tag ${TYPE_CLASS[d.attack_type]}">${TYPE_LABEL[d.attack_type]}</span>
+      <span class="attack-sensor">${topSensor} (Stage ${d.involved_sensors.length?d.involved_sensors[0].stage:'?'})</span>
+      <span class="attack-dur">${formatDur(d.duration_sec)}</span>
+      <span class="attack-detection">${detHtml}</span>
+      <svg class="attack-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l4 4-4 4"/></svg>
+    </div>
+    <div class="attack-body">
+      <div class="evidence-box">${d.evidence}</div>
+      <div style="margin-bottom:16px">
+        <div class="detail-label">Top Contributing Features</div>
+        <table class="feat-table">
+          <thead><tr><th>Feature</th><th>Category</th><th>Sensor</th><th>Stage</th><th class="feat-bar-cell">Importance</th><th class="feat-pct">%</th></tr></thead>
+          <tbody>${d.top_features.map(f => `
+            <tr>
+              <td class="feat-name">${f.feature}</td>
+              <td><span class="cat-dot" style="background:${CAT_COLORS[f.category]}"></span>${CAT_LABELS[f.category]||f.category}</td>
+              <td>${f.sensor}</td>
+              <td style="text-align:center">P${f.stage}</td>
+              <td class="feat-bar-cell"><div class="feat-bar-wrap"><div class="feat-bar" style="width:${Math.min(f.importance_pct,100)}%;background:${CAT_COLORS[f.category]}"></div></div></td>
+              <td class="feat-pct">${f.importance_pct.toFixed(1)}%</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="detail-row">
+        <div class="detail-col">
+          <div class="detail-label">Involved Sensors</div>
+          <div>${d.involved_sensors.map(s => `<span class="sensor-chip">${s.sensor} <span class="stage-num">P${s.stage}</span> ${s.contribution_pct.toFixed(1)}%</span>`).join('')}</div>
+        </div>
+        <div class="detail-col">
+          <div class="detail-label">Category Breakdown</div>
+          <div class="cat-breakdown">${Object.entries(d.category_breakdown).filter(([,v])=>v>=1).sort((a,b)=>b[1]-a[1]).map(([c,v]) => `<span class="cat-pill"><span class="cat-pill-dot" style="background:${CAT_COLORS[c]}"></span>${CAT_LABELS[c]||c} ${Math.round(v)}%</span>`).join('')}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  cardsEl.appendChild(card);
+});
+</script>

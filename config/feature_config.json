@@ -27,59 +27,9 @@
     }
   },
   "continuous_sensors": {
-    "AIT504": {
-      "tier": "high",
-      "ks_statistic": 0.5851,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
     "AIT402": {
       "tier": "high",
-      "ks_statistic": 0.5481,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "AIT201": {
-      "tier": "high",
-      "ks_statistic": 0.5465,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "AIT202": {
-      "tier": "high",
-      "ks_statistic": 0.5235,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "FIT301": {
-      "tier": "high",
-      "ks_statistic": 0.5097,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "AIT502": {
-      "tier": "high",
-      "ks_statistic": 0.4893,
+      "ks_statistic": 0.924,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -89,7 +39,7 @@
     },
     "AIT203": {
       "tier": "high",
-      "ks_statistic": 0.4878,
+      "ks_statistic": 0.8788,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -97,9 +47,9 @@
         "deviation_from_baseline"
       ]
     },
-    "AIT501": {
+    "AIT502": {
       "tier": "high",
-      "ks_statistic": 0.4361,
+      "ks_statistic": 0.8585,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -107,9 +57,9 @@
         "deviation_from_baseline"
       ]
     },
-    "PIT503": {
+    "AIT201": {
       "tier": "high",
-      "ks_statistic": 0.4263,
+      "ks_statistic": 0.8242,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -117,9 +67,9 @@
         "deviation_from_baseline"
       ]
     },
-    "PIT501": {
+    "AIT202": {
       "tier": "high",
-      "ks_statistic": 0.3839,
+      "ks_statistic": 0.7421,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -127,69 +77,9 @@
         "deviation_from_baseline"
       ]
     },
-    "FIT601": {
+    "AIT504": {
       "tier": "high",
-      "ks_statistic": 0.3708,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "PIT502": {
-      "tier": "high",
-      "ks_statistic": 0.3696,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "FIT503": {
-      "tier": "high",
-      "ks_statistic": 0.3668,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "FIT504": {
-      "tier": "high",
-      "ks_statistic": 0.3369,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "FIT401": {
-      "tier": "high",
-      "ks_statistic": 0.2564,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "FIT501": {
-      "tier": "high",
-      "ks_statistic": 0.2523,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "FIT502": {
-      "tier": "high",
-      "ks_statistic": 0.2494,
+      "ks_statistic": 0.5783,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -199,7 +89,7 @@
     },
     "DPIT301": {
       "tier": "high",
-      "ks_statistic": 0.244,
+      "ks_statistic": 0.5116,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -207,9 +97,9 @@
         "deviation_from_baseline"
       ]
     },
-    "LIT301": {
+    "FIT301": {
       "tier": "high",
-      "ks_statistic": 0.2424,
+      "ks_statistic": 0.4659,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -217,19 +107,9 @@
         "deviation_from_baseline"
       ]
     },
-    "LIT401": {
+    "AIT501": {
       "tier": "high",
-      "ks_statistic": 0.2391,
-      "features": [
-        "rolling_mean",
-        "rolling_std",
-        "rate_of_change",
-        "deviation_from_baseline"
-      ]
-    },
-    "LIT101": {
-      "tier": "high",
-      "ks_statistic": 0.2111,
+      "ks_statistic": 0.453,
       "features": [
         "rolling_mean",
         "rolling_std",
@@ -238,16 +118,104 @@
       ]
     },
     "FIT201": {
+      "tier": "high",
+      "ks_statistic": 0.4195,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "PIT503": {
+      "tier": "high",
+      "ks_statistic": 0.4021,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "FIT601": {
+      "tier": "high",
+      "ks_statistic": 0.3965,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "PIT502": {
+      "tier": "high",
+      "ks_statistic": 0.3627,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "PIT501": {
+      "tier": "high",
+      "ks_statistic": 0.3465,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "FIT503": {
+      "tier": "high",
+      "ks_statistic": 0.342,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "FIT401": {
+      "tier": "high",
+      "ks_statistic": 0.2884,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "FIT501": {
+      "tier": "high",
+      "ks_statistic": 0.2854,
+      "features": [
+        "rolling_mean",
+        "rolling_std",
+        "rate_of_change",
+        "deviation_from_baseline"
+      ]
+    },
+    "FIT504": {
       "tier": "medium",
-      "ks_statistic": 0.1995,
+      "ks_statistic": 0.1909,
       "features": [
         "rolling_mean",
         "rate_of_change"
       ]
     },
-    "FIT101": {
+    "FIT502": {
       "tier": "medium",
-      "ks_statistic": 0.1737,
+      "ks_statistic": 0.1758,
+      "features": [
+        "rolling_mean",
+        "rate_of_change"
+      ]
+    },
+    "AIT401": {
+      "tier": "medium",
+      "ks_statistic": 0.1683,
       "features": [
         "rolling_mean",
         "rate_of_change"
@@ -255,16 +223,43 @@
     },
     "AIT503": {
       "tier": "medium",
-      "ks_statistic": 0.126,
+      "ks_statistic": 0.1667,
       "features": [
         "rolling_mean",
         "rate_of_change"
       ]
     },
-    "AIT401": {
-      "tier": "low",
-      "ks_statistic": 0.026,
-      "features": []
+    "LIT401": {
+      "tier": "medium",
+      "ks_statistic": 0.1594,
+      "features": [
+        "rolling_mean",
+        "rate_of_change"
+      ]
+    },
+    "LIT101": {
+      "tier": "medium",
+      "ks_statistic": 0.133,
+      "features": [
+        "rolling_mean",
+        "rate_of_change"
+      ]
+    },
+    "LIT301": {
+      "tier": "medium",
+      "ks_statistic": 0.1315,
+      "features": [
+        "rolling_mean",
+        "rate_of_change"
+      ]
+    },
+    "FIT101": {
+      "tier": "medium",
+      "ks_statistic": 0.0727,
+      "features": [
+        "rolling_mean",
+        "rate_of_change"
+      ]
     }
   },
   "discrete": {
@@ -323,104 +318,104 @@
   ],
   "baselines": {
     "FIT101": {
-      "mean": 0.0,
-      "std": 1.0
+      "mean": -0.1432,
+      "std": 1.0596
     },
     "LIT101": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 0.1894,
+      "std": 1.1128
     },
     "AIT201": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -0.0675,
+      "std": 0.9854
     },
     "AIT202": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 0.0579,
+      "std": 1.1409
     },
     "AIT203": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 0.2052,
+      "std": 1.2076
     },
     "FIT201": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -0.1643,
+      "std": 1.0828
     },
     "DPIT301": {
-      "mean": 0.0,
-      "std": 1.0
+      "mean": -0.1953,
+      "std": 1.1917
     },
     "FIT301": {
-      "mean": 0.0,
-      "std": 1.0
+      "mean": -0.2346,
+      "std": 1.1832
     },
     "LIT301": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 0.1554,
+      "std": 1.0756
     },
     "AIT401": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 0.0462,
+      "std": 0.9996
     },
     "AIT402": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 2.902,
+      "std": 9.3832
     },
     "FIT401": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -5.4355,
+      "std": 17.1335
     },
     "LIT401": {
-      "mean": 0.0,
-      "std": 1.0
+      "mean": -0.5897,
+      "std": 2.0691
     },
     "AIT501": {
-      "mean": 0.0,
-      "std": 1.0
+      "mean": -0.5375,
+      "std": 2.1534
     },
     "AIT502": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 1.8286,
+      "std": 6.1526
     },
     "AIT503": {
-      "mean": 0.0,
-      "std": 1.0
+      "mean": 0.0421,
+      "std": 0.9514
     },
     "AIT504": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": 0.0856,
+      "std": 1.9312
     },
     "FIT501": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -5.5669,
+      "std": 17.667
     },
     "FIT502": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -4.4882,
+      "std": 14.2345
     },
     "FIT503": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -5.6121,
+      "std": 17.7253
     },
     "FIT504": {
-      "mean": 0.0,
-      "std": 1.0
+      "mean": -5.2536,
+      "std": 16.5444
     },
     "PIT501": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -5.0851,
+      "std": 16.1059
     },
     "PIT502": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -0.3094,
+      "std": 1.422
     },
     "PIT503": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -5.0017,
+      "std": 15.8685
     },
     "FIT601": {
-      "mean": -0.0,
-      "std": 1.0
+      "mean": -0.0046,
+      "std": 0.9765
     }
   }
 }

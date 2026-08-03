@@ -50,28 +50,29 @@ TRAIN_RATIO = 0.8
 
 
 def prepare_train_test() -> tuple[pd.DataFrame, pd.DataFrame, StandardScaler]:
-    """Load data, clean, normalize, and return train/test splits.
+    """Load overlap period (normal + attack), split 80/20 temporally.
 
-    Train = first 80% of normal data (temporal split).
-    Test = last 20% of normal (label=0) + all attack data (label=1).
-    Scaler fitted on train only.
+    Uses only the period where both normal and attack data exist.
+    Scaler fitted on normal rows in the train split only.
     """
     normal, attack = load_or_create_processed()
     normal = clean_normal_data(normal)
 
-    split_idx = int(len(normal) * TRAIN_RATIO)
-    train = normal.iloc[:split_idx]
-    normal_test = normal.iloc[split_idx:]
+    overlap_start = attack["Timestamp"].min()
+    normal_overlap = normal[normal["Timestamp"] >= overlap_start]
 
-    scaler = fit_scaler(train)
+    combined = pd.concat([normal_overlap, attack], ignore_index=True)
+    combined = combined.sort_values("Timestamp").reset_index(drop=True)
+
+    split_idx = int(len(combined) * TRAIN_RATIO)
+    train = combined.iloc[:split_idx]
+    test = combined.iloc[split_idx:]
+
+    train_normal = train[train["label"] == 0]
+    scaler = fit_scaler(train_normal)
 
     train_scaled = apply_scaler(train, scaler)
-    normal_test_scaled = apply_scaler(normal_test, scaler)
-    attack_scaled = apply_scaler(attack, scaler)
-
-    test_scaled = pd.concat(
-        [normal_test_scaled, attack_scaled], ignore_index=True,
-    )
+    test_scaled = apply_scaler(test, scaler)
 
     return train_scaled, test_scaled, scaler
 

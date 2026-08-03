@@ -1,0 +1,36 @@
+window,duration,attack_type,top_sensor,stage,evidence,top_category,top_cat_pct
+P1,940,actuator_control,P602,6,"Physical contradiction detected: P602_FIT601_contra_instant (sensor P602, stage 6). Actuator features account for 32% of total error.",contradiction,31.841894
+P2,443,actuator_control,P102,1,"Physical contradiction detected: P102_abnormal_duration (sensor P102, stage 1). Actuator features account for 50% of total error.",switching,26.772064
+P3,383,sensor_malfunction,LIT101,1,"Sensor malfunction: LIT101_max_jump_10 (sensor LIT101, stage 1). Frozen=15%, spike=20% of total error.",rate_of_change,21.755106
+P4,390,sensor_malfunction,AIT401,4,"Sensor malfunction: FIT503_frozen_raw (sensor FIT503, stage 5). Frozen=35%, spike=5% of total error.",frozen,34.852703
+P5,196,sensor_manipulation,AIT202,2,"Sensor manipulation: AIT202_std_60 (sensor AIT202, stage 2). Deviation=8%, rolling=40% of total error.",rolling,39.72231
+P6,429,unknown,LIT301,3,Dominant feature category: low_variance (67%),low_variance,67.43401
+P7,964,sensor_manipulation,DPIT301,3,"Sensor manipulation: DPIT301_mean_60 (sensor DPIT301, stage 3). Deviation=9%, rolling=37% of total error.",rolling,37.383713
+P8,721,sensor_manipulation,FIT401,4,"Sensor manipulation: FIT401_mean_300 (sensor FIT401, stage 4). Deviation=7%, rolling=60% of total error.",rolling,59.915607
+P9,721,sensor_malfunction,AIT503,5,"Sensor malfunction: FIT601_frozen_raw (sensor FIT601, stage 6). Frozen=52%, spike=5% of total error.",frozen,51.754112
+P10,233,sensor_malfunction,AIT503,5,"Sensor malfunction: AIT501_frozen_raw (sensor AIT501, stage 5). Frozen=38%, spike=5% of total error.",frozen,38.417168
+P11,431,sensor_malfunction,PIT502,5,"Sensor malfunction: PIT501_frozen_raw (sensor PIT501, stage 5). Frozen=38%, spike=7% of total error.",frozen,37.60882
+P12,276,sensor_malfunction,LIT301,3,"Sensor malfunction: LIT301_max_jump_10 (sensor LIT301, stage 3). Frozen=5%, spike=37% of total error.",spike_jump,37.138428
+P13,717,actuator_control,MV301,3,"Physical contradiction detected: MV301_FIT301_contra_30 (sensor MV301, stage 3). Actuator features account for 63% of total error.",contradiction,62.88144
+P14,259,sensor_manipulation,AIT503,5,"Sensor manipulation: FIT601_roc (sensor FIT601, stage 6). Deviation=4%, rolling=27% of total error.",rolling,26.63773
+P15,395,sensor_manipulation,AIT504,5,"Sensor manipulation: AIT504_mean_300 (sensor AIT504, stage 5). Deviation=13%, rolling=73% of total error.",rolling,72.95612
+P16,721,sensor_malfunction,LIT101,1,"Sensor malfunction: LIT101_frozen_raw (sensor LIT101, stage 1). Frozen=86%, spike=1% of total error.",frozen,86.18811
+P17,463,sensor_manipulation,FIT504,5,"Sensor manipulation: FIT504_mean_300 (sensor FIT504, stage 5). Deviation=10%, rolling=63% of total error.",rolling,62.5899
+P18,697,sensor_manipulation,DPIT301,3,"Sensor manipulation: DPIT301_roc (sensor DPIT301, stage 3). Deviation=8%, rolling=36% of total error.",rolling,36.055878
+P19,321,actuator_control,P204,2,"Physical contradiction detected: P206_switch_30 (sensor P206, stage 2). Actuator features account for 16% of total error.",switching,71.37844
+P20,612,sensor_malfunction,LIT401,4,"Sensor malfunction: LIT401_frozen_raw (sensor LIT401, stage 4). Frozen=43%, spike=8% of total error.",frozen,43.062737
+P21,1445,actuator_control,P102,1,"Physical contradiction detected: P102_switch_30 (sensor P102, stage 1). Actuator features account for 40% of total error.",frozen,23.94146
+P22,35900,sensor_manipulation,FIT501,5,"Sensor manipulation: FIT503_mean_300 (sensor FIT503, stage 5). Deviation=5%, rolling=75% of total error.",rolling,75.36034
+P23,121,sensor_malfunction,AIT501,5,"Sensor malfunction: AIT201_frozen_raw (sensor AIT201, stage 2). Frozen=37%, spike=5% of total error.",frozen,37.31392
+P24,1171,actuator_control,P102,1,"Physical contradiction detected: P102_abnormal_duration (sensor P102, stage 1). Actuator features account for 54% of total error.",constant_change,28.026333
+P25,367,sensor_malfunction,LIT401,4,"Sensor malfunction: LIT401_frozen_raw (sensor LIT401, stage 4). Frozen=59%, spike=6% of total error.",frozen,58.51828
+P26,601,unknown,LIT301,3,Dominant feature category: low_variance (73%),low_variance,72.85728
+P27,444,sensor_malfunction,LIT101,1,"Sensor malfunction: LIT101_frozen_raw (sensor LIT101, stage 1). Frozen=84%, spike=2% of total error.",frozen,83.625496
+P28,101,actuator_control,P102,1,"Physical contradiction detected: P102_abnormal_duration (sensor P102, stage 1). Actuator features account for 59% of total error.",constant_change,39.175358
+P29,481,sensor_manipulation,AIT503,5,"Sensor manipulation: AIT503_mean_120 (sensor AIT503, stage 5). Deviation=2%, rolling=34% of total error.",rolling,34.20878
+P30,540,sensor_malfunction,LIT101,1,"Sensor malfunction: LIT101_frozen_raw (sensor LIT101, stage 1). Frozen=80%, spike=3% of total error.",frozen,79.705086
+P31,469,sensor_manipulation,FIT504,5,"Sensor manipulation: FIT504_mean_300 (sensor FIT504, stage 5). Deviation=10%, rolling=56% of total error.",rolling,55.64913
+P32,281,sensor_manipulation,AIT502,5,"Sensor manipulation: AIT501_roc (sensor AIT501, stage 5). Deviation=8%, rolling=31% of total error.",rolling,31.393644
+P33,401,sensor_manipulation,FIT401,4,"Sensor manipulation: FIT401_mean_300 (sensor FIT401, stage 4). Deviation=10%, rolling=72% of total error.",rolling,71.51908
+P34,297,sensor_manipulation,FIT401,4,"Sensor manipulation: FIT401_mean_300 (sensor FIT401, stage 4). Deviation=11%, rolling=56% of total error.",rolling,55.6235
+P35,1690,unknown,LIT301,3,Dominant feature category: low_variance (71%),low_variance,70.52505

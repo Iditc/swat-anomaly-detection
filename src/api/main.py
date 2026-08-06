@@ -18,7 +18,8 @@ from fastapi import FastAPI, HTTPException
 from tensorflow import keras
 
 from src.api.schemas import (
-    SensorReading, PredictionResponse, HealthResponse, InvolvedSensor,
+    SensorReading, PredictionResponse, HealthResponse,
+    InvolvedSensor, DetectionDetail,
 )
 from src.models.error_analysis_v2 import compute_raw_features
 from src.preprocessing.feature_config import load_config
@@ -41,11 +42,13 @@ app = FastAPI(
 
 model_state = {
     "ae": None,
+    "svm": None,
     "sensor_scaler": None,
     "feat_scaler": None,
     "feature_names": None,
     "continuous_sensors": None,
-    "threshold": None,
+    "ae_threshold": None,
+    "svm_threshold": None,
     "config": None,
     "buffer": None,
     "loaded": False,
@@ -56,6 +59,7 @@ model_state = {
 def load_model():
     """Load all model artifacts at startup."""
     model_state["ae"] = keras.models.load_model(MODELS_DIR / "autoencoder.keras")
+    model_state["svm"] = joblib.load(MODELS_DIR / "svm.joblib")
     model_state["sensor_scaler"] = joblib.load(MODELS_DIR / "sensor_scaler.joblib")
     model_state["feat_scaler"] = joblib.load(MODELS_DIR / "feature_scaler.joblib")
 
@@ -64,7 +68,8 @@ def load_model():
 
     model_state["feature_names"] = metadata["feature_names"]
     model_state["continuous_sensors"] = metadata["continuous_sensors"]
-    model_state["threshold"] = metadata["threshold"]
+    model_state["ae_threshold"] = metadata["ae_threshold"]
+    model_state["svm_threshold"] = metadata["svm_threshold"]
     model_state["config"] = load_config()
     model_state["buffer"] = pd.DataFrame()
     model_state["loaded"] = True
@@ -135,7 +140,7 @@ def health_check():
         status="healthy" if model_state["loaded"] else "not_ready",
         model_loaded=model_state["loaded"],
         n_features=len(model_state["feature_names"]) if model_state["feature_names"] else 0,
-        threshold=model_state["threshold"] or 0.0,
+        threshold=model_state["ae_threshold"] or 0.0,
         buffer_size=len(model_state["buffer"]) if model_state["buffer"] is not None else 0,
     )
 
@@ -161,9 +166,16 @@ def predict(reading: SensorReading):
     X = build_features_from_buffer(buffer)
 
     ae = model_state["ae"]
+    svm = model_state["svm"]
+
     recon = ae.predict(X, verbose=0)
-    score = float(np.mean((X - recon) ** 2))
-    is_anomaly = score > model_state["threshold"]
+    ae_score = float(np.mean((X - recon) ** 2))
+    svm_score = float(-svm.decision_function(X)[0])
+
+    ae_anomaly = ae_score > model_state["ae_threshold"]
+    svm_anomaly = svm_score > model_state["svm_threshold"]
+    is_anomaly = ae_anomaly or svm_anomaly
+    score = ae_score
 
     attack_type = None
     description = None
@@ -187,11 +199,28 @@ def predict(reading: SensorReading):
             for s in classification["involved_sensors"][:5]
         ]
 
+    if is_anomaly:
+        detected_parts = []
+        if svm_anomaly:
+            detected_parts.append("SVM")
+        if ae_anomaly:
+            detected_parts.append("AE")
+        detected_by = " + ".join(detected_parts)
+    else:
+        detected_by = None
+
     return PredictionResponse(
-        anomaly_score=round(score, 6),
+        anomaly_score=round(ae_score, 6),
         is_anomaly=is_anomaly,
+        detected_by=detected_by,
         attack_type=attack_type,
         description=description,
         involved_sensors=involved_sensors,
         evidence=evidence,
+        detection=DetectionDetail(
+            ae_score=round(ae_score, 6),
+            ae_anomaly=ae_anomaly,
+            svm_score=round(svm_score, 6),
+            svm_anomaly=svm_anomaly,
+        ),
     )

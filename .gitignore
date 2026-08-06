@@ -4,6 +4,8 @@ src/data/processed/
 *.joblib
 *.h5
 *.pkl
+*.keras
+!models/production/
 docker/postgres_data/
 .idea/
 

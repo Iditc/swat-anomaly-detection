@@ -69,13 +69,22 @@ class InvolvedSensor(BaseModel):
     contribution_pct: float
 
 
+class DetectionDetail(BaseModel):
+    ae_score: float
+    ae_anomaly: bool
+    svm_score: float
+    svm_anomaly: bool
+
+
 class PredictionResponse(BaseModel):
     anomaly_score: float
     is_anomaly: bool
+    detected_by: str | None
     attack_type: str | None
     description: str | None
     involved_sensors: list[InvolvedSensor]
     evidence: str | None
+    detection: DetectionDetail
 
 
 class HealthResponse(BaseModel):

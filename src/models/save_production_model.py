@@ -19,7 +19,8 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import precision_recall_curve
+from sklearn.svm import OneClassSVM
+from sklearn.metrics import precision_recall_curve, f1_score
 from tensorflow import keras
 from tensorflow.keras import layers
 
@@ -108,18 +109,24 @@ def train_autoencoder(X_train, epochs=100):
     return ae
 
 
-def find_threshold(ae, X_test, y_test):
+def find_threshold(scores, y_test, name="model"):
     """Find the optimal anomaly threshold using F1 on precision-recall curve."""
-    recon = ae.predict(X_test, verbose=0)
-    scores = np.mean((X_test - recon) ** 2, axis=1)
-
     prec, rec, thr = precision_recall_curve(y_test, scores)
     f1 = np.where((prec + rec) > 0, 2 * prec * rec / (prec + rec), 0)
     best_idx = np.argmax(f1)
     threshold = float(thr[min(best_idx, len(thr) - 1)])
 
-    print(f"  Best F1: {f1[best_idx]:.4f} at threshold: {threshold:.6f}")
+    print(f"  {name} best F1: {f1[best_idx]:.4f} at threshold: {threshold:.6f}")
     return threshold
+
+
+def train_svm(X_train):
+    """Train One-Class SVM on a sample of normal data."""
+    rng = np.random.RandomState(RANDOM_STATE)
+    idx = rng.choice(len(X_train), 50_000, replace=False)
+    svm = OneClassSVM(kernel="rbf", gamma=0.005, nu=0.001)
+    svm.fit(X_train[idx])
+    return svm
 
 
 def save_constant_baselines(train_df):
@@ -173,8 +180,16 @@ def main():
     print("\nTraining Autoencoder...")
     ae = train_autoencoder(X_train)
 
-    print("\nFinding optimal threshold...")
-    threshold = find_threshold(ae, X_test, y_test)
+    print("\nTraining SVM...")
+    svm = train_svm(X_train)
+
+    print("\nFinding optimal thresholds...")
+    ae_recon = ae.predict(X_test, verbose=0)
+    ae_scores = np.mean((X_test - ae_recon) ** 2, axis=1)
+    ae_threshold = find_threshold(ae_scores, y_test, "AE")
+
+    svm_scores = -svm.decision_function(X_test)
+    svm_threshold = find_threshold(svm_scores, y_test, "SVM")
 
     constant_baselines = save_constant_baselines(train_df)
 
@@ -182,6 +197,7 @@ def main():
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
     ae.save(MODELS_DIR / "autoencoder.keras")
+    joblib.dump(svm, MODELS_DIR / "svm.joblib")
     joblib.dump(sensor_scaler, MODELS_DIR / "sensor_scaler.joblib")
     joblib.dump(feat_scaler, MODELS_DIR / "feature_scaler.joblib")
 
@@ -189,7 +205,8 @@ def main():
     metadata = {
         "feature_names": feature_names,
         "continuous_sensors": continuous,
-        "threshold": threshold,
+        "ae_threshold": ae_threshold,
+        "svm_threshold": svm_threshold,
         "n_features": len(feature_names),
         "constant_baselines": constant_baselines,
     }
@@ -198,9 +215,12 @@ def main():
 
     print(f"\n  Saved to {MODELS_DIR}/:")
     print(f"    autoencoder.keras")
+    print(f"    svm.joblib")
     print(f"    sensor_scaler.joblib")
     print(f"    feature_scaler.joblib")
-    print(f"    model_metadata.json ({len(feature_names)} features, threshold={threshold:.6f})")
+    print(f"    model_metadata.json ({len(feature_names)} features)")
+    print(f"    AE threshold: {ae_threshold:.6f}")
+    print(f"    SVM threshold: {svm_threshold:.6f}")
     print("\n  Done! Ready for FastAPI.")
 
 

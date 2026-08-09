@@ -87,6 +87,16 @@ class PredictionResponse(BaseModel):
     detection: DetectionDetail
 
 
+class BatchRequest(BaseModel):
+    readings: list[SensorReading]
+
+
+class BatchResponse(BaseModel):
+    total: int
+    anomalies: int
+    results: list[PredictionResponse]
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool

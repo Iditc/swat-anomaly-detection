@@ -22,7 +22,7 @@ from src.api.database import Base, engine, get_db
 from src.api.models_db import Prediction, IncidentSensor
 from src.api.schemas import (
     SensorReading, PredictionResponse, HealthResponse,
-    InvolvedSensor, DetectionDetail,
+    InvolvedSensor, DetectionDetail, BatchRequest, BatchResponse,
 )
 from src.models.error_analysis_v2 import compute_raw_features
 from src.preprocessing.feature_config import load_config
@@ -246,4 +246,24 @@ def predict(reading: SensorReading, db: Session = Depends(get_db)):
             svm_score=round(svm_score, 6),
             svm_anomaly=svm_anomaly,
         ),
+    )
+
+
+@app.post("/predict/batch", response_model=BatchResponse)
+def predict_batch(batch: BatchRequest, db: Session = Depends(get_db)):
+    """Predict anomalies for multiple readings at once."""
+    if not model_state["loaded"]:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    results = []
+    for reading in batch.readings:
+        result = predict(reading, db)
+        results.append(result)
+
+    anomaly_count = sum(1 for r in results if r.is_anomaly)
+
+    return BatchResponse(
+        total=len(results),
+        anomalies=anomaly_count,
+        results=results,
     )

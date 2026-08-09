@@ -81,7 +81,7 @@ def main():
         ctx_start = max(0, start - 60)
         ctx_end = min(len(test_raw) - 1, end + 60)
         before = test_raw.iloc[ctx_start:start]
-        after = test_raw.iloc[end + 1:ctx_end + 1]
+        _ = test_raw.iloc[end + 1:ctx_end + 1]
 
         print(f"\n{'='*80}")
         print(f"  P{widx} — {duration}s — "
@@ -89,7 +89,7 @@ def main():
         print(f"{'='*80}")
 
         # Continuous sensor analysis
-        print(f"\n  CONTINUOUS SENSORS (deviation from training normal):")
+        print("\n  CONTINUOUS SENSORS (deviation from training normal):")
         print(f"  {'Sensor':<12} {'Max σ':>7} {'Mean σ':>7} "
               f"{'Window Mean':>12} {'Train Mean':>12} {'Train Std':>10} {'Pattern'}")
         print(f"  {'-'*85}")
@@ -169,7 +169,7 @@ def main():
                 })
 
         if disc_anomalies:
-            print(f"\n  DISCRETE SENSORS (state changes):")
+            print("\n  DISCRETE SENSORS (state changes):")
             print(f"  {'Sensor':<10} {'Before':>7} {'Start':>7} {'End':>7} "
                   f"{'Changes':>8} {'Train Dom':>10} {'%':>6}")
             print(f"  {'-'*60}")
@@ -180,7 +180,7 @@ def main():
                       f"{d['train_dominant_pct']:>5.1f}%")
 
         # Physical contradictions check
-        print(f"\n  PHYSICAL CHECKS:")
+        print("\n  PHYSICAL CHECKS:")
         # P101/P102 (pumps) vs FIT101 (flow)
         for pump in ["P101", "P102"]:
             if pump in window.columns and "FIT101" in window.columns:
@@ -219,7 +219,7 @@ def main():
                     f"({direction}{change_sigma:.1f}σ)"
                 )
         if changes_summary:
-            print(f"\n  VALUE CHANGES (start→end):")
+            print("\n  VALUE CHANGES (start→end):")
             for c in changes_summary:
                 print(f"    {c}")
 

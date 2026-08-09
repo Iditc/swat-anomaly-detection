@@ -1,0 +1,5 @@
+[lint]
+ignore = [
+    "B008",     # Depends() in FastAPI defaults — standard pattern
+    "RUF059",   # fig, ax = plt.subplots() — standard matplotlib pattern
+]

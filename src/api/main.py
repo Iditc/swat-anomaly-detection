@@ -6,6 +6,7 @@ time-window features (rolling mean, frozen detection, etc.).
 """
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import json
@@ -14,24 +15,31 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from tensorflow import keras
 
 from src.api.database import Base, engine, get_db
-from src.api.models_db import Prediction, IncidentSensor
+from src.api.models_db import IncidentSensor, Prediction
 from src.api.schemas import (
-    SensorReading, PredictionResponse, HealthResponse,
-    InvolvedSensor, DetectionDetail, BatchRequest, BatchResponse,
+    BatchRequest,
+    BatchResponse,
+    DetectionDetail,
+    HealthResponse,
+    InvolvedSensor,
+    PredictionResponse,
+    SensorReading,
 )
+from src.explainability.attack_classifier import classify_attack
+from src.explainability.explainer import explain_window
 from src.models.error_analysis_v2 import compute_raw_features
 from src.preprocessing.feature_config import load_config
 from src.preprocessing.feature_engineering import (
-    compute_rolling_features, compute_rate_of_change,
-    compute_deviation, compute_pair_residuals,
+    compute_deviation,
+    compute_pair_residuals,
+    compute_rate_of_change,
+    compute_rolling_features,
 )
-from src.explainability.explainer import explain_window
-from src.explainability.attack_classifier import classify_attack
 
 ROOT = Path(__file__).resolve().parents[2]
 MODELS_DIR = ROOT / "models" / "production"
@@ -180,7 +188,6 @@ def predict(reading: SensorReading, db: Session = Depends(get_db)):
     ae_anomaly = ae_score > model_state["ae_threshold"]
     svm_anomaly = svm_score > model_state["svm_threshold"]
     is_anomaly = ae_anomaly or svm_anomaly
-    score = ae_score
 
     attack_type = None
     description = None

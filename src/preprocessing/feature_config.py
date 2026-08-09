@@ -6,8 +6,7 @@ from pathlib import Path
 import pandas as pd
 from scipy import stats
 
-from src.preprocessing.load_data import get_sensor_columns
-from src.preprocessing.prepare_data import get_continuous_sensors, get_discrete_sensors
+from src.preprocessing.prepare_data import get_continuous_sensors
 
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 
@@ -144,10 +143,10 @@ if __name__ == "__main__":
     print(f"\nSaved: {path}")
 
     tiers = {"high": 0, "medium": 0, "low": 0}
-    for sensor, info in config["continuous_sensors"].items():
+    for info in config["continuous_sensors"].values():
         tiers[info["tier"]] += 1
 
-    print(f"\nTier distribution:")
+    print("\nTier distribution:")
     for tier, count in tiers.items():
         print(f"  {tier:<8} {count} sensors")
 

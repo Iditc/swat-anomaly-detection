@@ -1,18 +1,17 @@
 """Unit tests for preprocessing and feature engineering functions."""
 
-import numpy as np
 import pandas as pd
 import pytest
 
 from src.preprocessing.feature_engineering import (
-    compute_rolling_features,
-    compute_rate_of_change,
-    compute_deviation,
-    compute_pair_residuals,
-    compute_frozen_detection,
-    compute_spike_detection,
     compute_constant_sensor_changes,
     compute_contradiction_features,
+    compute_deviation,
+    compute_frozen_detection,
+    compute_pair_residuals,
+    compute_rate_of_change,
+    compute_rolling_features,
+    compute_spike_detection,
 )
 
 

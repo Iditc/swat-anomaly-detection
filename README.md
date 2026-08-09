@@ -562,6 +562,161 @@ Train and test-normal distributions are nearly identical — no overfitting. The
 
 **3 remaining missed windows** (P10, P11, P23): max deviations of 1.9–2.4σ with no physical contradictions, no frozen sensors, no constant-sensor changes. These are genuinely undetectable with the available sensor data.
 
+## Explainability — Attack Classification
+
+Every anomaly is automatically classified and explained:
+
+| Output | Description |
+|--------|------------|
+| `attack_type` | `sensor_manipulation`, `actuator_control`, `sensor_malfunction` |
+| `involved_sensors` | Top contributing sensors with stage and contribution % |
+| `evidence` | Human-readable explanation (e.g., "Dominant feature category: rate_of_change (80%)") |
+
+**How it works:**
+- **Feature attribution** — per-feature reconstruction error from the Autoencoder identifies which sensors contribute most to the anomaly
+- **Attack classification** — rule-based classifier maps the dominant features to attack types (no extra model needed)
+- **Stage identification** — each sensor maps to its physical stage (P1–P6) in the plant
+
+## API — FastAPI Prediction Service
+
+Real-time anomaly detection API with OR Ensemble (SVM + Autoencoder).
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Model status, feature count, buffer size |
+| `/predict` | POST | Single sensor reading → anomaly prediction with explainability |
+| `/predict/batch` | POST | Multiple readings at once |
+
+### How it works
+
+1. **Caller sends raw sensor readings** (51 values — all sensors)
+2. **API computes all features internally** — rolling stats, frozen detection, contradictions, etc. using a 300-row rolling buffer
+3. **OR Ensemble predicts** — if either SVM or Autoencoder flags anomaly → alert
+4. **Explainability from AE** — per-feature reconstruction error identifies compromised sensors
+5. **Result stored in PostgreSQL** — every prediction logged with full incident details
+
+### Example response
+
+```json
+{
+  "anomaly_score": 166.35,
+  "is_anomaly": true,
+  "detected_by": "SVM + AE",
+  "attack_type": "sensor_manipulation",
+  "involved_sensors": [
+    {"sensor": "LIT301", "stage": 3, "contribution_pct": 26.7},
+    {"sensor": "FIT201", "stage": 2, "contribution_pct": 16.6}
+  ],
+  "evidence": "Dominant feature category: rate_of_change (80%)",
+  "detection": {
+    "ae_score": 166.35, "ae_anomaly": true,
+    "svm_score": 0.14, "svm_anomaly": true
+  }
+}
+```
+
+### Production model artifacts
+
+All artifacts saved in `models/production/`:
+
+| File | Description |
+|------|------------|
+| `autoencoder.keras` | Trained AE model (1.2 MB) |
+| `svm.joblib` | Trained One-Class SVM (2.9 MB) |
+| `sensor_scaler.joblib` | StandardScaler for raw sensors |
+| `feature_scaler.joblib` | StandardScaler for combined feature matrix |
+| `model_metadata.json` | Feature names, thresholds, continuous sensor list |
+
+## Database — PostgreSQL
+
+Every prediction is stored with full incident details for audit trail and dashboard visualization.
+
+### Schema
+
+**`predictions` table:**
+
+| Column | Type | Description |
+|--------|------|------------|
+| id | int | Auto-increment primary key |
+| timestamp | datetime | UTC timestamp of prediction |
+| ae_score | float | Autoencoder reconstruction error |
+| svm_score | float | SVM decision function (inverted) |
+| is_anomaly | bool | OR Ensemble result |
+| detected_by | string | "SVM", "AE", or "SVM + AE" |
+| attack_type | string | Classification result |
+| description | text | Human-readable attack description |
+| evidence | text | Feature attribution evidence |
+
+**`incident_sensors` table:**
+
+| Column | Type | Description |
+|--------|------|------------|
+| prediction_id | FK → predictions | Link to parent prediction |
+| sensor | string | Sensor name (e.g., "LIT301") |
+| stage | int | Physical stage (1–6) |
+| contribution_pct | float | % contribution to anomaly |
+
+## Docker — Full Stack Containerization
+
+The entire system runs with a single command:
+
+```bash
+docker compose up -d
+```
+
+This starts 3 services:
+
+| Service | Image | Port | Purpose |
+|---------|-------|------|---------|
+| `swat-postgres` | postgres:16-alpine | 5432 | Prediction database |
+| `swat-api` | Custom Dockerfile | 8000 | FastAPI prediction API |
+| `swat-grafana` | grafana/grafana:11.6.0 | 3000 | Monitoring dashboard |
+
+### Data Simulator
+
+Replay real attack data against the live API:
+
+```bash
+python scripts/simulate_stream.py --rows 500 --delay 0.05
+```
+
+The simulator:
+1. Warms up the buffer with 300 normal rows
+2. Sends a mix of normal + attack data row by row
+3. Reports anomalies with actual labels for comparison
+4. Supports batch mode: `--batch-size 50`
+
+## Grafana Dashboard
+
+7-panel monitoring dashboard connected to PostgreSQL:
+
+| Panel | Type | What it shows |
+|-------|------|--------------|
+| Anomaly Score Over Time | Time series | AE and SVM scores with anomaly highlights |
+| Total Alerts | Stat | Count of detected anomalies |
+| Attack Type Distribution | Bar chart | Breakdown by attack classification |
+| Recent Alerts | Table | Latest anomalies with details and evidence |
+| Normal vs Anomaly | Pie chart | Overall anomaly ratio |
+| Top Attacked Sensors | Bar chart | Most frequently involved sensors |
+| Attacks by Stage | Bar chart | Which plant stages are most targeted |
+
+Access at `http://localhost:3000` (admin/admin).
+
+## Tests
+
+27 tests covering preprocessing functions and API endpoints:
+
+```bash
+python -m pytest tests/ -v
+```
+
+| Test file | Tests | Coverage |
+|-----------|-------|---------|
+| `test_preprocessing.py` | 19 | Rolling features, rate of change, deviation, pair residuals, frozen detection, spike detection, constant sensors, contradictions |
+| `test_api.py` | 8 | Health endpoint, predict endpoint (valid/invalid input), batch endpoint |
+
 ## Project Structure
 
 ```
@@ -569,26 +724,44 @@ swat-anomaly-detection/
 ├── src/
 │   ├── preprocessing/   # Data loading, cleaning, feature engineering
 │   ├── eda/             # Exploratory data analysis
-│   ├── models/          # Isolation Forest, Autoencoder, LightGBM
+│   ├── models/          # Isolation Forest, Autoencoder, SVM, LightGBM, LSTM
 │   ├── explainability/  # Attack classification + feature attribution
-│   ├── api/             # FastAPI application
+│   ├── api/             # FastAPI app (main.py, schemas.py, database.py)
 │   ├── monitoring/      # Model drift detection
 │   └── utils/           # Shared utilities
-├── tests/               # Unit + integration tests
-├── docker/              # Dockerfiles
-├── grafana/             # Dashboard configuration
-├── scripts/             # Data simulator, demo scripts
-└── results/             # Figures and metrics
+├── tests/               # Unit + integration tests (27 tests)
+├── docker/              # Dockerfile for API
+├── grafana/             # Dashboard provisioning config
+├── scripts/             # Data simulator
+├── models/production/   # Saved model artifacts for API
+├── config/              # Feature config + selected features
+└── results/             # Figures, metrics, reports
 ```
 
 ## Setup
 
+### Quick start (Docker)
+
 ```bash
 git clone https://github.com/Iditc/swat-anomaly-detection.git
 cd swat-anomaly-detection
+docker compose up -d
+```
+
+Services available at:
+- API: http://localhost:8000/docs (Swagger UI)
+- Grafana: http://localhost:3000 (admin/admin)
+
+### Local development
+
+```bash
 pip install -r requirements.txt
+docker compose up -d postgres   # DB only
+python -m uvicorn src.api.main:app --reload
 ```
 
 ## Status
 
-Under development
+Week 1 (Data Science) — Complete
+Week 2 (API + Docker + DB + Tests) — Complete
+Week 3 (Grafana Dashboard + CI/CD) — In progress

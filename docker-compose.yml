@@ -28,3 +28,21 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: swat-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  grafana_data:

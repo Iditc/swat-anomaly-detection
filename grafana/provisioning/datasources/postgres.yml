@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: SWaT PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: swat
+    user: swat_user
+    secureJsonData:
+      password: swat_pass
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+    isDefault: true
+    editable: true

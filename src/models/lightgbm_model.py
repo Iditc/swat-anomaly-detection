@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
+    average_precision_score,
     classification_report,
     confusion_matrix,
     f1_score,
-    average_precision_score,
 )
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
@@ -108,7 +108,7 @@ def print_metrics(metrics: dict) -> None:
     print(f"  Precision (Attack): {metrics['precision_attack']}")
     print(f"  Recall (Attack):    {metrics['recall_attack']}")
     print(f"  Average Precision:  {metrics['ap']}")
-    print(f"\n  Confusion Matrix:")
+    print("\n  Confusion Matrix:")
     print(f"    TP={metrics['tp']:,}  FP={metrics['fp']:,}")
     print(f"    FN={metrics['fn']:,}  TN={metrics['tn']:,}")
 

@@ -12,11 +12,11 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.metrics import (
+    average_precision_score,
     classification_report,
     confusion_matrix,
     f1_score,
     precision_recall_curve,
-    average_precision_score,
 )
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
@@ -46,7 +46,7 @@ def get_feature_columns(df: pd.DataFrame) -> list[str]:
 
 def train_model(X_train: pd.DataFrame) -> IsolationForest:
     """Train Isolation Forest on normal data."""
-    print(f"Training Isolation Forest...")
+    print("Training Isolation Forest...")
     print(f"  Samples: {len(X_train):,}, Features: {X_train.shape[1]}")
 
     model = IsolationForest(
@@ -128,7 +128,7 @@ def print_metrics(metrics: dict) -> None:
     print(f"  Precision (Attack): {metrics['precision_attack']}")
     print(f"  Recall (Attack):    {metrics['recall_attack']}")
     print(f"  Average Precision:  {metrics['ap']}")
-    print(f"\n  Confusion Matrix:")
+    print("\n  Confusion Matrix:")
     print(f"    TP={metrics['tp']:,}  FP={metrics['fp']:,}")
     print(f"    FN={metrics['fn']:,}  TN={metrics['tn']:,}")
 

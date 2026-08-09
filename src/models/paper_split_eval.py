@@ -5,27 +5,32 @@ test on the full attack period (which includes both normal and attack rows).
 """
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 import pandas as pd
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+)
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
-from sklearn.metrics import (
-    classification_report, confusion_matrix, f1_score, precision_recall_curve,
-)
 from tensorflow import keras
 from tensorflow.keras import layers
-import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from src.preprocessing.load_data import clean_normal_data, get_sensor_columns
-from src.preprocessing.feature_engineering import generate_features
 from src.preprocessing.feature_config import load_config
+from src.preprocessing.feature_engineering import generate_features
+from src.preprocessing.load_data import clean_normal_data
 from src.preprocessing.prepare_data import get_continuous_sensors
 
 ROOT = Path(__file__).resolve().parents[2]

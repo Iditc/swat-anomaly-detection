@@ -5,20 +5,21 @@ before scaling, then combine with scaled rolling features.
 """
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import f1_score, precision_recall_curve
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
-from sklearn.metrics import f1_score, precision_recall_curve
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from src.preprocessing.load_data import clean_normal_data, get_sensor_columns
 from src.preprocessing.feature_config import load_config
+from src.preprocessing.load_data import clean_normal_data
 from src.preprocessing.prepare_data import get_continuous_sensors
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -200,8 +201,10 @@ def main():
 
     # Step 3: Generate standard features on scaled data (no filter)
     from src.preprocessing.feature_engineering import (
-        compute_rolling_features, compute_rate_of_change, compute_deviation,
+        compute_deviation,
         compute_pair_residuals,
+        compute_rate_of_change,
+        compute_rolling_features,
     )
     config = load_config()
     scaled_features = {}
@@ -338,7 +341,7 @@ def main():
     print(f"  {'OR Ensemble':<25} {f1_or:>7.4f} {f1_or_pa:>8.4f} {caught_or:>5}/{len(windows)}")
 
     # --- Per-window ---
-    print(f"\n  Per-window:")
+    print("\n  Per-window:")
     print(f"  {'Win':<6} {'Dur':>5} {'SVM':>8} {'AE':>8} {'OR':>8}")
     print("  " + "-" * 40)
     missed_indices = {10, 11, 14, 21, 23, 25, 28}
@@ -361,7 +364,7 @@ def main():
     test_normal_mask = y_test == 0
     test_attack_mask = y_test == 1
 
-    print(f"\n  SVM anomaly scores:")
+    print("\n  SVM anomaly scores:")
     print(f"    Train normal:  mean={svm_train_scores.mean():.4f}  "
           f"std={svm_train_scores.std():.4f}  "
           f"p95={np.percentile(svm_train_scores, 95):.4f}")
@@ -376,7 +379,7 @@ def main():
     recon_train = ae.predict(X_train[idx[:10000]], verbose=0)
     ae_train_scores = np.mean((X_train[idx[:10000]] - recon_train) ** 2, axis=1)
 
-    print(f"\n  AE reconstruction error:")
+    print("\n  AE reconstruction error:")
     print(f"    Train normal:  mean={ae_train_scores.mean():.4f}  "
           f"std={ae_train_scores.std():.4f}  "
           f"p95={np.percentile(ae_train_scores, 95):.4f}")
@@ -391,7 +394,7 @@ def main():
     svm_fp = svm_pred[test_normal_mask].mean()
     ae_fp = ae_pred[test_normal_mask].mean()
     or_fp = or_pred[test_normal_mask].mean()
-    print(f"\n  False positive rate (test-normal predicted as attack):")
+    print("\n  False positive rate (test-normal predicted as attack):")
     print(f"    SVM: {svm_fp:.4f} ({svm_pred[test_normal_mask].sum():,} / "
           f"{test_normal_mask.sum():,})")
     print(f"    AE:  {ae_fp:.4f} ({ae_pred[test_normal_mask].sum():,} / "
@@ -412,7 +415,7 @@ def main():
     pd.DataFrame(results).to_csv(
         RESULTS_DIR / "metrics" / "error_analysis_v2.csv", index=False
     )
-    print(f"\n  Saved: results/metrics/error_analysis_v2.csv")
+    print("\n  Saved: results/metrics/error_analysis_v2.csv")
 
 
 if __name__ == "__main__":

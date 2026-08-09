@@ -10,6 +10,7 @@ Replicates the error_analysis_v2 pipeline and saves:
 """
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import json
@@ -18,22 +19,25 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.metrics import precision_recall_curve
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
-from sklearn.metrics import precision_recall_curve, f1_score
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from src.preprocessing.load_data import clean_normal_data
-from src.preprocessing.feature_config import load_config
-from src.preprocessing.prepare_data import get_continuous_sensors
-from src.preprocessing.feature_engineering import (
-    compute_rolling_features, compute_rate_of_change,
-    compute_deviation, compute_pair_residuals,
-)
 from src.models.error_analysis_v2 import (
-    compute_raw_features, get_attack_windows, ALWAYS_CONSTANT,
+    ALWAYS_CONSTANT,
+    compute_raw_features,
 )
+from src.preprocessing.feature_config import load_config
+from src.preprocessing.feature_engineering import (
+    compute_deviation,
+    compute_pair_residuals,
+    compute_rate_of_change,
+    compute_rolling_features,
+)
+from src.preprocessing.load_data import clean_normal_data
+from src.preprocessing.prepare_data import get_continuous_sensors
 
 ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = ROOT / "src" / "data" / "processed"
@@ -214,10 +218,10 @@ def main():
         json.dump(metadata, f, indent=2)
 
     print(f"\n  Saved to {MODELS_DIR}/:")
-    print(f"    autoencoder.keras")
-    print(f"    svm.joblib")
-    print(f"    sensor_scaler.joblib")
-    print(f"    feature_scaler.joblib")
+    print("    autoencoder.keras")
+    print("    svm.joblib")
+    print("    sensor_scaler.joblib")
+    print("    feature_scaler.joblib")
     print(f"    model_metadata.json ({len(feature_names)} features)")
     print(f"    AE threshold: {ae_threshold:.6f}")
     print(f"    SVM threshold: {svm_threshold:.6f}")

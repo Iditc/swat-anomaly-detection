@@ -1,6 +1,7 @@
 """LSTM Autoencoder — learns normal temporal patterns, flags deviations."""
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from pathlib import Path
@@ -8,7 +9,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
-    classification_report, f1_score, precision_recall_curve,
+    classification_report,
+    f1_score,
+    precision_recall_curve,
 )
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -148,7 +151,7 @@ def main():
                 pid += 1
             period_ids[i] = pid
 
-        print(f"\n  Per attack period:")
+        print("\n  Per attack period:")
         for p in range(period_ids.max() + 1):
             mask = period_ids == p
             period_pred = y_pred[attack_indices[mask]]

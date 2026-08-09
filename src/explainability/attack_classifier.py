@@ -9,8 +9,7 @@ Classifies each detected anomaly window into one of:
 Uses feature attribution from explainer.py to determine the type.
 """
 
-from src.explainability.explainer import get_stage, STAGE_MAP
-
+from src.explainability.explainer import get_stage
 
 ATTACK_TYPES = {
     "sensor_manipulation": "Continuous sensor readings deviate from normal without "

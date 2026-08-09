@@ -2,13 +2,16 @@
 
 from pathlib import Path
 
+import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
+from sklearn.metrics import (
+    classification_report,
+    f1_score,
+    precision_recall_curve,
+)
 from sklearn.svm import OneClassSVM
-from sklearn.metrics import f1_score, precision_recall_curve, average_precision_score
-from sklearn.metrics import classification_report
-import lightgbm as lgb
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 RESULTS_DIR = Path(__file__).resolve().parents[2] / "results"

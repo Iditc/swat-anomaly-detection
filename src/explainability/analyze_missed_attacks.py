@@ -5,19 +5,20 @@ interpretable deviation measurements.
 """
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import precision_recall_curve
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
-from sklearn.metrics import precision_recall_curve
 
-from src.preprocessing.load_data import clean_normal_data, get_sensor_columns
-from src.preprocessing.feature_engineering import generate_features
 from src.preprocessing.feature_config import load_config
+from src.preprocessing.feature_engineering import generate_features
+from src.preprocessing.load_data import clean_normal_data, get_sensor_columns
 from src.preprocessing.prepare_data import get_continuous_sensors
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -182,13 +183,13 @@ def main():
         print(f"\n  Window P{a['window']} — {a['duration_sec']}s — MISSED")
         print(f"  {'─'*60}")
 
-        print(f"  Top deviating sensors (σ from training normal):")
+        print("  Top deviating sensors (σ from training normal):")
         for sensor, dev in a["top_sensors"]:
             print(f"    {sensor:<12} max={dev['max_sigma']:.1f}σ  "
                   f"mean={dev['mean_sigma']:.1f}σ")
 
         if a["discrete_changes"]:
-            print(f"  Discrete sensor changes:")
+            print("  Discrete sensor changes:")
             for sensor, info in a["discrete_changes"].items():
                 print(f"    {sensor}: states={info['states']}, "
                       f"changes={info['changes']}")
@@ -204,7 +205,7 @@ def main():
     missed_max = [a["top_sensors"][0][1]["max_sigma"] for a in missed if a["top_sensors"]]
     caught_max = [a["top_sensors"][0][1]["max_sigma"] for a in caught if a["top_sensors"]]
 
-    print(f"\n  Top sensor max deviation (σ):")
+    print("\n  Top sensor max deviation (σ):")
     print(f"    Missed ({len(missed)}): median={np.median(missed_max):.1f}, "
           f"range=[{min(missed_max):.1f}, {max(missed_max):.1f}]")
     print(f"    Caught ({len(caught)}): median={np.median(caught_max):.1f}, "
@@ -223,7 +224,7 @@ def main():
     # Duration comparison
     missed_dur = [a["duration_sec"] for a in missed]
     caught_dur = [a["duration_sec"] for a in caught]
-    print(f"\n  Duration (seconds):")
+    print("\n  Duration (seconds):")
     print(f"    Missed: median={int(np.median(missed_dur))}, "
           f"range=[{min(missed_dur)}, {max(missed_dur)}]")
     print(f"    Caught: median={int(np.median(caught_dur))}, "

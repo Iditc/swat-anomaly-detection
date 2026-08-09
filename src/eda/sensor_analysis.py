@@ -45,7 +45,7 @@ def part4_sensor_distributions(normal: pd.DataFrame, attack: pd.DataFrame) -> No
     ks_results.sort(key=lambda x: x[1], reverse=True)
     top_sensors = [s for s, _, _ in ks_results[:12]]
 
-    print(f"\nTop 12 most different sensors (highest KS statistic):")
+    print("\nTop 12 most different sensors (highest KS statistic):")
     for i, (sensor, ks_stat, _) in enumerate(ks_results[:12], 1):
         print(f"  {i:2d}. {sensor:<12} KS={ks_stat:.4f}")
 

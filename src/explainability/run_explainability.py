@@ -7,6 +7,7 @@ Produces:
 """
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from pathlib import Path
@@ -18,17 +19,17 @@ from sklearn.preprocessing import StandardScaler
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from src.preprocessing.load_data import clean_normal_data
-from src.preprocessing.feature_config import load_config
-from src.preprocessing.prepare_data import get_continuous_sensors
-from src.models.error_analysis_v2 import (
-    compute_raw_features, get_attack_windows, CONTRADICTION_RULES,
-    ALWAYS_CONSTANT, best_f1_predictions, point_adjust,
-)
-from src.explainability.explainer import (
-    explain_all_windows, classify_feature,
-)
 from src.explainability.attack_classifier import classify_attack
+from src.explainability.explainer import (
+    explain_all_windows,
+)
+from src.models.error_analysis_v2 import (
+    compute_raw_features,
+    get_attack_windows,
+)
+from src.preprocessing.feature_config import load_config
+from src.preprocessing.load_data import clean_normal_data
+from src.preprocessing.prepare_data import get_continuous_sensors
 
 ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = ROOT / "src" / "data" / "processed"
@@ -94,8 +95,10 @@ def build_data_and_model():
     test_scaled[continuous] = scaler.transform(test_df[continuous])
 
     from src.preprocessing.feature_engineering import (
-        compute_rolling_features, compute_rate_of_change,
-        compute_deviation, compute_pair_residuals,
+        compute_deviation,
+        compute_pair_residuals,
+        compute_rate_of_change,
+        compute_rolling_features,
     )
     config = load_config()
 
@@ -288,7 +291,7 @@ def main():
     type_counts = pd.Series(
         [c["attack_type"] for c in classifications]
     ).value_counts()
-    print(f"\n  Attack type distribution:")
+    print("\n  Attack type distribution:")
     for atype, count in type_counts.items():
         print(f"    {atype}: {count}")
 
@@ -302,7 +305,7 @@ def main():
     metrics_dir = RESULTS_DIR / "metrics"
     metrics_dir.mkdir(parents=True, exist_ok=True)
     summary_df.to_csv(metrics_dir / "explainability_summary.csv", index=False)
-    print(f"  Saved: results/metrics/explainability_summary.csv")
+    print("  Saved: results/metrics/explainability_summary.csv")
 
 
 if __name__ == "__main__":

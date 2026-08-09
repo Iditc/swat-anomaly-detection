@@ -5,29 +5,34 @@
 """
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
-from sklearn.metrics import f1_score, precision_recall_curve
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from src.preprocessing.load_data import clean_normal_data, get_sensor_columns
-from src.preprocessing.prepare_data import get_continuous_sensors
 from src.models.error_analysis_v2 import (
-    compute_raw_features, get_attack_windows, point_adjust, best_f1_predictions,
-    CONTRADICTION_RULES,
-)
-from src.preprocessing.feature_engineering import (
-    compute_rolling_features, compute_rate_of_change, compute_deviation,
-    compute_pair_residuals,
+    best_f1_predictions,
+    compute_raw_features,
+    get_attack_windows,
+    point_adjust,
 )
 from src.preprocessing.feature_config import load_config
+from src.preprocessing.feature_engineering import (
+    compute_deviation,
+    compute_pair_residuals,
+    compute_rate_of_change,
+    compute_rolling_features,
+)
+from src.preprocessing.load_data import clean_normal_data
+from src.preprocessing.prepare_data import get_continuous_sensors
 
 ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = ROOT / "src" / "data" / "processed"
@@ -338,7 +343,7 @@ def main():
           f"{'':>10} {rules_fp:>7.2%}")
 
     # Per-window
-    print(f"\n  Per-window (focus on P10, P11, P23):")
+    print("\n  Per-window (focus on P10, P11, P23):")
     print(f"  {'Win':<6} {'Dur':>5} {'ML':>8} {'Rules':>8} {'ML+Rules':>10}")
     print("  " + "-" * 42)
     target = {10, 11, 23}
@@ -352,7 +357,7 @@ def main():
         print(f"  P{i+1:<5} {dur:>5} {ml:>8} {ru:>8} {cb:>10}")
 
     # Full table
-    print(f"\n  Full per-window:")
+    print("\n  Full per-window:")
     print(f"  {'Win':<6} {'Dur':>5} {'v3 ML+R':>10}")
     print("  " + "-" * 25)
     for i, (s, e) in enumerate(windows):
@@ -371,7 +376,7 @@ def main():
         "windows_caught": caught_comb,
         "fp_rate": combined_fp,
     }]).to_csv(RESULTS_DIR / "metrics" / "error_analysis_v3.csv", index=False)
-    print(f"\n  Saved: results/metrics/error_analysis_v3.csv")
+    print("\n  Saved: results/metrics/error_analysis_v3.csv")
 
 
 if __name__ == "__main__":

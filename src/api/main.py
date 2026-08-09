@@ -14,9 +14,12 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
 from tensorflow import keras
 
+from src.api.database import Base, engine, get_db
+from src.api.models_db import Prediction, IncidentSensor
 from src.api.schemas import (
     SensorReading, PredictionResponse, HealthResponse,
     InvolvedSensor, DetectionDetail,
@@ -57,7 +60,8 @@ model_state = {
 
 @app.on_event("startup")
 def load_model():
-    """Load all model artifacts at startup."""
+    """Load all model artifacts and create DB tables at startup."""
+    Base.metadata.create_all(bind=engine)
     model_state["ae"] = keras.models.load_model(MODELS_DIR / "autoencoder.keras")
     model_state["svm"] = joblib.load(MODELS_DIR / "svm.joblib")
     model_state["sensor_scaler"] = joblib.load(MODELS_DIR / "sensor_scaler.joblib")
@@ -146,11 +150,12 @@ def health_check():
 
 
 @app.post("/predict", response_model=PredictionResponse)
-def predict(reading: SensorReading):
+def predict(reading: SensorReading, db: Session = Depends(get_db)):
     """Predict anomaly for a single sensor reading.
 
     The reading is added to a rolling buffer. Features that require
     time history (rolling mean, frozen detection) use the buffer.
+    Results are stored in the database.
     """
     if not model_state["loaded"]:
         raise HTTPException(status_code=503, detail="Model not loaded")
@@ -208,6 +213,24 @@ def predict(reading: SensorReading):
         detected_by = " + ".join(detected_parts)
     else:
         detected_by = None
+
+    db_prediction = Prediction(
+        ae_score=round(ae_score, 6),
+        svm_score=round(svm_score, 6),
+        is_anomaly=is_anomaly,
+        detected_by=detected_by,
+        attack_type=attack_type,
+        description=description,
+        evidence=evidence,
+    )
+    for s in involved_sensors:
+        db_prediction.sensors.append(
+            IncidentSensor(
+                sensor=s.sensor, stage=s.stage, contribution_pct=s.contribution_pct,
+            )
+        )
+    db.add(db_prediction)
+    db.commit()
 
     return PredictionResponse(
         anomaly_score=round(ae_score, 6),

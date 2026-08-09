@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: swat-postgres
+    environment:
+      POSTGRES_DB: swat
+      POSTGRES_USER: swat_user
+      POSTGRES_PASSWORD: swat_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swat_user -d swat"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

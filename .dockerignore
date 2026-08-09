@@ -1,0 +1,15 @@
+.git
+.idea
+.venv
+__pycache__
+*.pyc
+src/data/raw
+src/data/processed
+docker/postgres_data
+results
+.github
+grafana
+tests
+*.md
+.gitignore
+.dockerignore

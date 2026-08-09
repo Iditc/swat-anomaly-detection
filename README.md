@@ -1,5 +1,7 @@
 # SWaT Anomaly Detection — Full Product
 
+[![CI](https://github.com/Iditc/swat-anomaly-detection/actions/workflows/ci.yml/badge.svg)](https://github.com/Iditc/swat-anomaly-detection/actions/workflows/ci.yml)
+
 End-to-end anomaly detection system for industrial control systems (OT/ICS).  
 From raw sensor data to a deployed, monitored product on AWS.
 
@@ -760,8 +762,18 @@ docker compose up -d postgres   # DB only
 python -m uvicorn src.api.main:app --reload
 ```
 
+## CI/CD — GitHub Actions
+
+Every push to `main` triggers an automated pipeline:
+
+| Job | What it checks |
+|-----|---------------|
+| **lint** | `ruff check` — code style and import errors |
+| **test** | `pytest` — 19 preprocessing unit tests |
+| **docker** | Builds the Docker image — verifies the build isn't broken |
+
 ## Status
 
 Week 1 (Data Science) — Complete
 Week 2 (API + Docker + DB + Tests) — Complete
-Week 3 (Grafana Dashboard + CI/CD) — In progress
+Week 3 (Grafana Dashboard + CI/CD) — Complete

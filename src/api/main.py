@@ -32,6 +32,7 @@ from src.api.schemas import (
 )
 from src.explainability.attack_classifier import classify_attack
 from src.explainability.explainer import explain_window
+from src.monitoring.drift_detection import check_drift
 from src.models.error_analysis_v2 import compute_raw_features
 from src.preprocessing.feature_config import load_config
 from src.preprocessing.feature_engineering import (
@@ -274,3 +275,26 @@ def predict_batch(batch: BatchRequest, db: Session = Depends(get_db)):
         anomalies=anomaly_count,
         results=results,
     )
+
+
+@app.get("/health/model")
+def model_health():
+    """Check model health — run drift detection on the current buffer."""
+    if not model_state["loaded"]:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    buffer = model_state["buffer"]
+    if buffer is None or len(buffer) < 30:
+        return {
+            "status": "insufficient_data",
+            "message": f"Need at least 30 rows, have {len(buffer) if buffer is not None else 0}",
+        }
+
+    continuous = model_state["continuous_sensors"]
+    buffer_values = {
+        sensor: buffer[sensor].values
+        for sensor in continuous
+        if sensor in buffer.columns
+    }
+
+    return check_drift(buffer_values)

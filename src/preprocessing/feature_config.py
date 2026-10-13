@@ -1,10 +1,13 @@
-"""Generate feature configuration from KS test results."""
+"""Generate feature configuration from training data only.
+
+All continuous sensors get the full feature set — no test data
+or labels are used for tier assignment, avoiding any leakage.
+"""
 
 import json
 from pathlib import Path
 
 import pandas as pd
-from scipy import stats
 
 from src.preprocessing.prepare_data import get_continuous_sensors
 
@@ -12,13 +15,9 @@ CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 
 WINDOW_SIZES = [60, 120, 300]
 
-HIGH_TIER_THRESHOLD = 0.2
-MEDIUM_TIER_THRESHOLD = 0.05
-
-HIGH_TIER_FEATURES = [
+FEATURES = [
     "rolling_mean", "rolling_std", "rate_of_change", "deviation_from_baseline",
 ]
-MEDIUM_TIER_FEATURES = ["rolling_mean", "rate_of_change"]
 
 ALWAYS_CONSTANT_SENSORS = ["P204", "P206"]
 
@@ -38,60 +37,22 @@ CORRELATION_PAIRS = [
 ]
 
 
-def run_ks_tests(
-    train: pd.DataFrame, test: pd.DataFrame,
-) -> list[dict]:
-    """Run KS test on each continuous sensor, return sorted results."""
+def build_sensor_config(train: pd.DataFrame) -> dict:
+    """Build feature configuration from training data only.
+
+    All continuous sensors get the full feature set.
+    No test data or labels needed — the model learns which features matter.
+    """
     continuous = get_continuous_sensors(train)
-    results = []
-    for sensor in continuous:
-        ks_stat, p_val = stats.ks_2samp(
-            train[sensor].dropna(), test[sensor].dropna(),
-        )
-        results.append({
-            "sensor": sensor,
-            "ks_statistic": round(ks_stat, 4),
-            "p_value": float(f"{p_val:.2e}"),
-        })
-    results.sort(key=lambda x: x["ks_statistic"], reverse=True)
-    return results
-
-
-def assign_tier(ks_stat: float) -> str:
-    """Assign feature tier based on KS statistic."""
-    if ks_stat >= HIGH_TIER_THRESHOLD:
-        return "high"
-    if ks_stat >= MEDIUM_TIER_THRESHOLD:
-        return "medium"
-    return "low"
-
-
-def build_sensor_config(
-    train: pd.DataFrame, test: pd.DataFrame,
-) -> dict:
-    """Build complete feature configuration from data."""
-    ks_results = run_ks_tests(train, test)
 
     continuous_config = {}
-    for result in ks_results:
-        sensor = result["sensor"]
-        tier = assign_tier(result["ks_statistic"])
-
-        if tier == "high":
-            features = HIGH_TIER_FEATURES
-        elif tier == "medium":
-            features = MEDIUM_TIER_FEATURES
-        else:
-            features = []
-
+    for sensor in continuous:
         continuous_config[sensor] = {
-            "tier": tier,
-            "ks_statistic": result["ks_statistic"],
-            "features": features,
+            "tier": "high",
+            "features": FEATURES,
         }
 
     baselines = {}
-    continuous = get_continuous_sensors(train)
     for sensor in continuous:
         baselines[sensor] = {
             "mean": round(float(train[sensor].mean()), 4),
@@ -100,11 +61,6 @@ def build_sensor_config(
 
     config = {
         "window_sizes": WINDOW_SIZES,
-        "tiers": {
-            "high": {"threshold": HIGH_TIER_THRESHOLD, "features": HIGH_TIER_FEATURES},
-            "medium": {"threshold": MEDIUM_TIER_THRESHOLD, "features": MEDIUM_TIER_FEATURES},
-            "low": {"threshold": 0, "features": []},
-        },
         "continuous_sensors": continuous_config,
         "discrete": {
             "always_constant": ALWAYS_CONSTANT_SENSORS,
@@ -135,22 +91,14 @@ def load_config() -> dict:
 if __name__ == "__main__":
     from src.preprocessing.prepare_data import prepare_train_test
 
-    print("Running KS tests and building feature config...")
-    train, test, _ = prepare_train_test()
-    config = build_sensor_config(train, test)
+    print("Building feature config from training data only...")
+    train, _, _ = prepare_train_test()
+    config = build_sensor_config(train)
     path = save_config(config)
 
     print(f"\nSaved: {path}")
-
-    tiers = {"high": 0, "medium": 0, "low": 0}
-    for info in config["continuous_sensors"].values():
-        tiers[info["tier"]] += 1
-
-    print("\nTier distribution:")
-    for tier, count in tiers.items():
-        print(f"  {tier:<8} {count} sensors")
-
-    print(f"\nWindow sizes: {config['window_sizes']}")
+    print(f"Continuous sensors: {len(config['continuous_sensors'])} (all high tier)")
+    print(f"Window sizes: {config['window_sizes']}")
     print(f"Cross-sensor pairs: {len(config['cross_sensor_pairs'])}")
     print(f"Contradiction pairs: {len(config['discrete']['contradiction_pairs'])}")
     print(f"Always-constant sensors: {config['discrete']['always_constant']}")

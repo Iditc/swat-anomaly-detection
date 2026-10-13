@@ -126,7 +126,8 @@ def find_threshold_percentile(train_scores, name="model", percentile=99):
 def train_svm(X_train):
     """Train One-Class SVM on a sample of normal data."""
     rng = np.random.RandomState(RANDOM_STATE)
-    idx = rng.choice(len(X_train), 50_000, replace=False)
+    n_sample = min(50_000, len(X_train))
+    idx = rng.choice(len(X_train), n_sample, replace=False)
     svm = OneClassSVM(kernel="rbf", gamma=0.005, nu=0.001)
     svm.fit(X_train[idx])
     return svm
@@ -194,25 +195,68 @@ def main():
     svm_train_scores = -svm.decision_function(X_train)
     svm_threshold = find_threshold_percentile(svm_train_scores, "SVM", percentile=99)
 
-    print("\nEvaluating on test set (for reference only — not used for threshold)...")
+    print("\nOverfitting check (train vs test error):")
     ae_recon_test = ae.predict(X_test, verbose=0)
     ae_test_scores = np.mean((X_test - ae_recon_test) ** 2, axis=1)
     svm_test_scores = -svm.decision_function(X_test)
 
-    ae_preds = ae_test_scores > ae_threshold
-    svm_preds = svm_test_scores > svm_threshold
-    ensemble_preds = ae_preds | svm_preds
+    ae_train_mean = float(np.mean(ae_train_scores))
+    ae_test_normal = ae_test_scores[y_test == 0]
+    ae_test_attack = ae_test_scores[y_test == 1]
+    ae_test_mean = float(np.mean(ae_test_normal))
+
+    train_fp_rate = float(np.mean(ae_train_scores > ae_threshold))
+    test_normal_fp_rate = float(np.mean(ae_test_normal > ae_threshold))
+    test_attack_recall = float(np.mean(ae_test_attack > ae_threshold))
+
+    print("  AE reconstruction error:")
+    print(f"    Train normal:  mean={ae_train_mean:.4f}  "
+          f"FP rate={train_fp_rate:.3f}")
+    print(f"    Test normal:   mean={ae_test_mean:.4f}  "
+          f"FP rate={test_normal_fp_rate:.3f}")
+    print(f"    Test attack:   mean={float(np.mean(ae_test_attack)):.4f}  "
+          f"recall={test_attack_recall:.3f}")
+
+    if test_normal_fp_rate > train_fp_rate * 3:
+        print("  ⚠️  Test FP rate much higher than train — possible overfitting")
+    else:
+        print("  ✓  No overfitting detected (train/test FP rates similar)")
+
+    print("\nEvaluating on test set (for reference only — not used for threshold)...")
+
+    ae_preds = (ae_test_scores > ae_threshold).astype(int)
+    svm_preds = (svm_test_scores > svm_threshold).astype(int)
+    ensemble_preds = (ae_preds | svm_preds).astype(int)
 
     from sklearn.metrics import f1_score, precision_score, recall_score
-    print(f"  AE      — P: {precision_score(y_test, ae_preds):.3f}  "
+
+    from src.models.error_analysis_v2 import point_adjust
+
+    print("\n  Point-Wise (honest):")
+    print(f"    AE      — P: {precision_score(y_test, ae_preds):.3f}  "
           f"R: {recall_score(y_test, ae_preds):.3f}  "
           f"F1: {f1_score(y_test, ae_preds):.3f}")
-    print(f"  SVM     — P: {precision_score(y_test, svm_preds):.3f}  "
+    print(f"    SVM     — P: {precision_score(y_test, svm_preds):.3f}  "
           f"R: {recall_score(y_test, svm_preds):.3f}  "
           f"F1: {f1_score(y_test, svm_preds):.3f}")
-    print(f"  Ensemble— P: {precision_score(y_test, ensemble_preds):.3f}  "
+    print(f"    Ensemble— P: {precision_score(y_test, ensemble_preds):.3f}  "
           f"R: {recall_score(y_test, ensemble_preds):.3f}  "
           f"F1: {f1_score(y_test, ensemble_preds):.3f}")
+
+    ae_pa = point_adjust(y_test, ae_preds)
+    svm_pa = point_adjust(y_test, svm_preds)
+    ensemble_pa = point_adjust(y_test, ensemble_preds)
+
+    print("\n  Point-Adjusted (for comparison with published benchmarks):")
+    print(f"    AE      — P: {precision_score(y_test, ae_pa):.3f}  "
+          f"R: {recall_score(y_test, ae_pa):.3f}  "
+          f"F1: {f1_score(y_test, ae_pa):.3f}")
+    print(f"    SVM     — P: {precision_score(y_test, svm_pa):.3f}  "
+          f"R: {recall_score(y_test, svm_pa):.3f}  "
+          f"F1: {f1_score(y_test, svm_pa):.3f}")
+    print(f"    Ensemble— P: {precision_score(y_test, ensemble_pa):.3f}  "
+          f"R: {recall_score(y_test, ensemble_pa):.3f}  "
+          f"F1: {f1_score(y_test, ensemble_pa):.3f}")
 
     constant_baselines = save_constant_baselines(train_df)
 

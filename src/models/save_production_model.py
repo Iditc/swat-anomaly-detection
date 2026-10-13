@@ -19,7 +19,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import precision_recall_curve
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
 from tensorflow import keras
@@ -113,14 +112,14 @@ def train_autoencoder(X_train, epochs=100):
     return ae
 
 
-def find_threshold(scores, y_test, name="model"):
-    """Find the optimal anomaly threshold using F1 on precision-recall curve."""
-    prec, rec, thr = precision_recall_curve(y_test, scores)
-    f1 = np.where((prec + rec) > 0, 2 * prec * rec / (prec + rec), 0)
-    best_idx = np.argmax(f1)
-    threshold = float(thr[min(best_idx, len(thr) - 1)])
+def find_threshold_percentile(train_scores, name="model", percentile=99):
+    """Set anomaly threshold from a percentile of normal training errors.
 
-    print(f"  {name} best F1: {f1[best_idx]:.4f} at threshold: {threshold:.6f}")
+    Uses only training data (no test labels) to avoid leakage.
+    Percentile 99 means: flag anything above the worst 1% of normal behavior.
+    """
+    threshold = float(np.percentile(train_scores, percentile))
+    print(f"  {name} threshold (P{percentile}): {threshold:.6f}")
     return threshold
 
 
@@ -187,13 +186,33 @@ def main():
     print("\nTraining SVM...")
     svm = train_svm(X_train)
 
-    print("\nFinding optimal thresholds...")
-    ae_recon = ae.predict(X_test, verbose=0)
-    ae_scores = np.mean((X_test - ae_recon) ** 2, axis=1)
-    ae_threshold = find_threshold(ae_scores, y_test, "AE")
+    print("\nSetting thresholds from training data (no test labels used)...")
+    ae_recon_train = ae.predict(X_train, verbose=0)
+    ae_train_scores = np.mean((X_train - ae_recon_train) ** 2, axis=1)
+    ae_threshold = find_threshold_percentile(ae_train_scores, "AE", percentile=99)
 
-    svm_scores = -svm.decision_function(X_test)
-    svm_threshold = find_threshold(svm_scores, y_test, "SVM")
+    svm_train_scores = -svm.decision_function(X_train)
+    svm_threshold = find_threshold_percentile(svm_train_scores, "SVM", percentile=99)
+
+    print("\nEvaluating on test set (for reference only — not used for threshold)...")
+    ae_recon_test = ae.predict(X_test, verbose=0)
+    ae_test_scores = np.mean((X_test - ae_recon_test) ** 2, axis=1)
+    svm_test_scores = -svm.decision_function(X_test)
+
+    ae_preds = ae_test_scores > ae_threshold
+    svm_preds = svm_test_scores > svm_threshold
+    ensemble_preds = ae_preds | svm_preds
+
+    from sklearn.metrics import f1_score, precision_score, recall_score
+    print(f"  AE      — P: {precision_score(y_test, ae_preds):.3f}  "
+          f"R: {recall_score(y_test, ae_preds):.3f}  "
+          f"F1: {f1_score(y_test, ae_preds):.3f}")
+    print(f"  SVM     — P: {precision_score(y_test, svm_preds):.3f}  "
+          f"R: {recall_score(y_test, svm_preds):.3f}  "
+          f"F1: {f1_score(y_test, svm_preds):.3f}")
+    print(f"  Ensemble— P: {precision_score(y_test, ensemble_preds):.3f}  "
+          f"R: {recall_score(y_test, ensemble_preds):.3f}  "
+          f"F1: {f1_score(y_test, ensemble_preds):.3f}")
 
     constant_baselines = save_constant_baselines(train_df)
 
